@@ -1,0 +1,12 @@
+/target
+/project/target
+/project/project/target
+/results
+/src/test/results
+/src/test/benchmarks
+.bsp
+.idea
+.env
+.runEnv
+.bloop
+_site
