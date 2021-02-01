@@ -21,6 +21,7 @@ lazy val root = project
       "ai.djl" % "api" % Versions.djl,
       "io.circe" %% "circe-jawn" % Versions.circe,
       "net.sf.supercsv" % "super-csv" % "2.4.0",
-    ),
+      "org.typelevel" %% "alleycats-core" % "2.3.1"
+  ),
     testFrameworks += new TestFramework("munit.Framework"),
   )

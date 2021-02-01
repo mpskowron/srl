@@ -1,6 +1,6 @@
 package ai.srl.experience.replay
 
-trait ReplayBuffer[T]: 
+trait ReplayBuffer[T]:
 
   def getBatch(): Array[T]
 
