@@ -8,7 +8,7 @@ import alleycats.Empty
 
 import scala.annotation.tailrec
 
-/**
+/** This is not a standard sumtree implementation where only leaves are meaningful nodes, in this one every node represents an added Item
  *
  * @param capacity
  * @param empty$T$0
@@ -42,7 +42,7 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
     val currentItem = array(idx)
     if leftChildIdx(idx) < capacity && sumOfValues < lSum then
       getInternal(sumOfValues, leftChildIdx(idx))
-    else if sumOfValues < lSum + currentItem.item.value || rightChildIdx(idx) >= capacity then
+    else if sumOfValues < lSum + currentItem.item.value || rightChildIdx(idx) >= capacity || rSum == 0 then
       (currentItem.item, idx)
     else
       getInternal(sumOfValues - lSum - currentItem.item.value, rightChildIdx(idx))
