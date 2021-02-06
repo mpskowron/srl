@@ -4,14 +4,14 @@ trait ReplayBuffer[T]:
 
   def getBatch(): Array[T]
 
-  def addElement(element: T): Unit
+  def addOne(item: T): Unit
 
   /**
    * Add elements in order of iteration
-   * @param elements
+   * @param items
    */
-  def addElements(elements: Iterable[T]): Unit =
-    elements.foreach(addElement(_))
+  def addAll(items: IterableOnce[T]): Unit =
+    items.iterator.foreach(addOne(_))
     
   def getBatchSize(): Int
 

@@ -1,30 +1,33 @@
 package ai.srl.experience.replay
 
-import ai.srl.collection.{CyclicArray, SumTree}
-import ai.srl.experience.config.ReplayConfig
-import ai.srl.experience.replay.ReplayBuffer
+import ai.srl.experience.replay.PrioritisedReplayBuffer.{PrioritisedIndex, IndexedItem, PrioritisedIndexedItem}
 
-import scala.reflect.ClassTag
-import alleycats.Empty
-import scala.util.Random
+trait PrioritisedReplayBuffer[T] extends ReplayBuffer[T]:
 
-class PrioritisedReplayBuffer[T: Empty](val batchSize: Int, val bufferSize: Int) extends ReplayBuffer[T]:
-  assert(batchSize <= bufferSize)
+  def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[T]]
+  
+  def getIndexedBatch(): Array[IndexedItem[T]]
 
-  private val steps = new SumTree[T](bufferSize)
-  private var firstStepIndex = 0
-  private var stepsActualSize = 0
-  private val random = Random()
+  def addOnePrioritised(item: T, priority: Float): Unit
 
-  override def getBatch(): Array[T] = ???
+  def update(prioritisedIndex: PrioritisedIndex): Unit
 
-  @throws(classOf[Exception])
-  override def addElement(step: T): Unit = ???
+  def updateBatch(prioritisedIndexes: IterableOnce[PrioritisedIndex]): Unit =
+    prioritisedIndexes.iterator.foreach(update)
+  /**
+   * Add elements in order of iteration
+   * @param items
+   */
 
-  override def getBatchSize(): Int = batchSize
+object PrioritisedReplayBuffer:
+  case class PrioritisedIndexedItem[T](item: T, priority: Float, idx: Int)
+  case class IndexedItem[T](item: T, idx: Int)
+  opaque type PrioritisedIndex = (Int, Float)
 
-  override def getBufferSize(): Int = bufferSize
+  object PrioritisedIndex:
+    def apply(idx: Int, priority: Float): PrioritisedIndex = (idx, priority)
 
-  override def getCurrentBufferSize(): Int = stepsActualSize
-
-
+  extension (prioritisedIndex: PrioritisedIndex)
+    def idx = prioritisedIndex._1
+    def priority = prioritisedIndex._2
+    def tuple: (Int, Float) = (prioritisedIndex._1, prioritisedIndex._2)

@@ -22,7 +22,7 @@ class LruReplayBuffer[T: ClassTag](val batchSize: Int, val bufferSize: Int) exte
     }.toArray
 
   @throws(classOf[Exception])
-  override def addElement(step: T): Unit =
+  override def addOne(step: T): Unit =
     if (actualSize == transitions.length)
       val stepToReplace: Int = Math.floorMod(firstTransitionIndex - 1, transitions.length)
       transitions(stepToReplace) match {
