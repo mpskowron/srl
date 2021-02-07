@@ -1,7 +1,7 @@
 package ai.srl.experience.replay
 
 import ai.srl.collection.CanClose
-import ai.srl.experience.replay.PrioritisedReplayBuffer.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
+import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
 import ai.srl.assertions.Assertions
 
@@ -13,16 +13,39 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
   private val defaultPriority = 1
   def assertEquals(actual: Int, expected: Int) = Assertions.assertApproxEquals(actual, expected, math.max(700, expected / 250))
 
+  test("updateLastBatch works correctly") {
+    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+    buffer.addAll(0 to 11)
+    val batch = buffer.getBatch()
+    // batch can contain repeated items, thus we calculate how many different items we had sampled
+    val numberOfDifferentItems = batch.toSet.size
+    buffer.updateLastBatch(List.fill(batch.size)(2f * defaultPriority))
+    val baseCount = 10000
+    var totalPriority = bufferSize * defaultPriority + numberOfDifferentItems * defaultPriority
+    var sampleSize = (totalPriority * baseCount).toInt
+
+    val manyBatches = (1 to sampleSize).flatMap(_ => buffer.getBatch())
+    val counts = manyBatches.groupBy(identity).view.mapValues(_.size)
+    counts.foreach { (item, count) => 
+      val expected = baseCount * batchSize * defaultPriority * (if batch.contains(item) then 2 else 1)
+      assertEquals(count, expected)
+    } 
+  }
+  
+  test("not full buffer can be queried correctly") {
+    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+    buffer.addAll(0 to 6)
+    assertUniformGetBatch(buffer, 10000 * buffer.getCurrentBufferSize(), batchSize)
+  }
+  
   test("getBatch and getIndexedBatch give results according to priority after additions and updates") {
     val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
     buffer.addAll(1 to 100)
     var baseCount = 10000
     val samples = baseCount * bufferSize
-    var manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
-    val occurrences = manyBatches.groupBy(identity).view.mapValues(_.size)
-    occurrences.values.foreach(assertEquals(_, baseCount * defaultPriority * batchSize))
+    assertUniformGetBatch(buffer, samples, batchSize)
     
-    manyBatches = (1 to samples).flatMap(_ => buffer.getPrioritisedIndexedBatch().map(_.item))
+    var manyBatches = (1 to samples).flatMap(_ => buffer.getPrioritisedIndexedBatch().map(_.item))
     manyBatches.groupBy(identity).view.mapValues(_.size).values.foreach(assertEquals(_, baseCount * defaultPriority * batchSize))
     
     buffer.addOnePrioritised(1000, 50)
@@ -108,4 +131,9 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
     items.drop(8).zip(9 to 10).foreach((actual, expected) => assert(actual.option.contains(expected)))
 
   }
+
+  private def assertUniformGetBatch(buffer: ReplayBuffer[?], samples: Int, batchSize: Int) =
+    var manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
+    val occurrences = manyBatches.groupBy(identity).view.mapValues(_.size)
+    occurrences.values.foreach(assertEquals(_, (defaultPriority * batchSize * samples) / buffer.getCurrentBufferSize()))
 

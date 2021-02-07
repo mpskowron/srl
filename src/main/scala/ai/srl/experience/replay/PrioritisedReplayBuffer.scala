@@ -1,33 +1,13 @@
 package ai.srl.experience.replay
 
-import ai.srl.experience.replay.PrioritisedReplayBuffer.{PrioritisedIndex, IndexedItem, PrioritisedIndexedItem}
-
 trait PrioritisedReplayBuffer[T] extends ReplayBuffer[T]:
-
-  def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[T]]
-  
-  def getIndexedBatch(): Array[IndexedItem[T]]
 
   def addOnePrioritised(item: T, priority: Float): Unit
 
-  def update(prioritisedIndex: PrioritisedIndex): Unit
-
-  def updateBatch(prioritisedIndexes: IterableOnce[PrioritisedIndex]): Unit =
-    prioritisedIndexes.iterator.foreach(update)
   /**
-   * Add elements in order of iteration
-   * @param items
+   * If getBatch is invoked multiple times only priorities from the most recent invocation can be updated using this method.
+   * Item deletions from buffer which happen in between getBatch and updateLastBatch methods might result in updating incorrect items (when
+   * deleted item is meant to be updated)
+   * @param newPriorities new priorites for the items from the last batch - needs to maintain the same order as last batch
    */
-
-object PrioritisedReplayBuffer:
-  case class PrioritisedIndexedItem[T](item: T, priority: Float, idx: Int)
-  case class IndexedItem[T](item: T, idx: Int)
-  opaque type PrioritisedIndex = (Int, Float)
-
-  object PrioritisedIndex:
-    def apply(idx: Int, priority: Float): PrioritisedIndex = (idx, priority)
-
-  extension (prioritisedIndex: PrioritisedIndex)
-    def idx = prioritisedIndex._1
-    def priority = prioritisedIndex._2
-    def tuple: (Int, Float) = (prioritisedIndex._1, prioritisedIndex._2)
+  def updateLastBatch(newPriorities: IterableOnce[Float]): Unit
