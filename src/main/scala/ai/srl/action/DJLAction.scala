@@ -6,12 +6,12 @@ import ai.djl.util.RandomUtils
 
 import scala.jdk.CollectionConverters._
 
-trait DJLAction:
-  def toNDList(manager: NDManager): NDList
+trait DJLAction[Ac]:
+  extension (action: Ac) def toNDList(manager: NDManager): NDList
 
 object DJLAction:
-  extension[A <: DJLAction] (array: Vector[A])
-    def randomAction(): A = array(RandomUtils.nextInt(array.size))
+  extension[Ac: DJLAction] (array: Vector[Ac])
+    def randomAction(): Ac = array(RandomUtils.nextInt(array.size))
     def toActionSpace(manager: NDManager): ActionSpace =
       val actionSpace = new ActionSpace()
       actionSpace.addAll(array.map(_.toNDList(manager)).asJava)

@@ -1,12 +1,9 @@
 package ai.srl.step
 
-import ai.srl.action.DJLAction
-import ai.srl.observation.DJLObservation
+trait BaseStep[Ac, Ob]:
+  def getPreObservation(): Ob
 
-trait BaseStep:
-  def getPreObservation(): DJLObservation
-
-  def getAction(): DJLAction
+  def getAction(): Ac
 
   def getReward(): Float
 

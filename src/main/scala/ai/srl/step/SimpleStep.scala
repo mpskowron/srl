@@ -1,12 +1,9 @@
 package ai.srl.step
 
-import ai.srl.action.DJLAction
-import ai.srl.observation.DJLObservation
+case class SimpleStep[Ac, Ob](observation: Ob, action: Ac, reward: Float, done: Boolean) extends BaseStep[Ac, Ob]:
+  override def getPreObservation(): Ob = observation
 
-case class SimpleStep(observation: DJLObservation, action: DJLAction, reward: Float, done: Boolean) extends BaseStep:
-  override def getPreObservation(): DJLObservation = observation
-
-  override def getAction(): DJLAction = action
+  override def getAction(): Ac = action
 
   override def getReward(): Float = reward
 
