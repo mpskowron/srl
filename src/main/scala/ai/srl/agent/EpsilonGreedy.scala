@@ -16,7 +16,7 @@ import ai.srl.env.RlEnv
 import ai.srl.action.DJLAction
 
 // TODO Should be tested (Do I have tests for it in another project?)
-class EpsilonGreedy[Ac, E <: RlEnv[Ac, ?], A <: Agent[Ac, E]](val baseAgent: A, val exploreRate: Tracker)extends Agent[Ac, E]:
+class EpsilonGreedy[Ac, E <: RlEnv[Ac, ?, ?], A <: Agent[Ac, E]](val baseAgent: A, val exploreRate: Tracker)extends Agent[Ac, E]:
   private var counter = 0
   private val random = Random()
 
@@ -35,16 +35,16 @@ class EpsilonGreedy[Ac, E <: RlEnv[Ac, ?], A <: Agent[Ac, E]](val baseAgent: A, 
     counter - 1
 
 object EpsilonGreedy:
-  given [Ac, E <:RlEnv[Ac, ?], A <: Agent[Ac, E] : Description : HasName]: Description[EpsilonGreedy[Ac, E, A]] with
+  given [Ac, E <:RlEnv[Ac, ?, ?], A <: Agent[Ac, E] : Description : HasName]: Description[EpsilonGreedy[Ac, E, A]] with
     extension (agent: EpsilonGreedy[Ac, E, A]) 
       def describe(): Seq[(String, String)] = Seq(
         ("agentName", agent.name)
       )
   
-  given [Ac, E <:RlEnv[Ac, ?], A <: Agent[Ac, E] : HasName]: HasName[EpsilonGreedy[Ac, E, A]] with
+  given [Ac, E <:RlEnv[Ac, ?, ?], A <: Agent[Ac, E] : HasName]: HasName[EpsilonGreedy[Ac, E, A]] with
     extension (agent: EpsilonGreedy[Ac, E, A]) 
       def name = s"${agent.getClass.getSimpleName}(${agent.baseAgent.name})"
 
-  given [Ac, E <:RlEnv[Ac, ?], A <: Agent[Ac, E]: HasTrainer]: HasTrainer[EpsilonGreedy[Ac, E, A]] with
+  given [Ac, E <:RlEnv[Ac, ?, ?], A <: Agent[Ac, E]: HasTrainer]: HasTrainer[EpsilonGreedy[Ac, E, A]] with
     extension (agent: EpsilonGreedy[Ac, E, A])
       def trainer = agent.baseAgent.trainer

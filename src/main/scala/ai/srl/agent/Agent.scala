@@ -6,7 +6,7 @@ import ai.djl.training.dataset.Batch
 import ai.srl.action.DJLAction
 import ai.srl.env.RlEnv
 
-trait Agent[Ac, E <: RlEnv[Ac, ?]]:
+trait Agent[Ac, E <: RlEnv[Ac, ?, ?]]:
 
   def chooseAction(env: E, training: Boolean): Ac
   

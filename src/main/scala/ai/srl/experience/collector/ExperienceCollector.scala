@@ -8,7 +8,7 @@ import ai.srl.env.RlEnv
 
 import scala.annotation.tailrec
 
-trait ExperienceCollector[Ac, E <: RlEnv[Ac, ?], A <: Agent[Ac, E]]:
+trait ExperienceCollector[Ac, E <: RlEnv[Ac, ?, ?], A <: Agent[Ac, E]]:
 
   /**
    * Executes one action on the environment and saves obtained transition

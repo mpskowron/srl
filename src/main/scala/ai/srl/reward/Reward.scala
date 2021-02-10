@@ -3,7 +3,7 @@ package ai.srl.reward
 import ai.srl.action.DJLAction
 import ai.srl.env.RlEnv
 
-trait Reward[Ac, E <: RlEnv[Ac, ?]]:
+trait Reward[Ac, E <: RlEnv[Ac, ?, ?]]:
   /**
    * @param env Assummed to be in a state after executing an action
    * @param action Action which led environment ot its current state
