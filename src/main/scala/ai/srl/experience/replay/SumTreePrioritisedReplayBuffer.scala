@@ -20,7 +20,7 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
   private val items = new SumTree[T](bufferSize)
   private var actualSize = 0
   private val random = Random()
-  private var lastBatchIndexes: IterableOnce[Int] = List.empty
+  private var lastBatchIndexes: Seq[Int] = List.empty
 
   // TODO should I use nextFloat or nextDouble and convert it to float after multiplication?
   override def getBatch(): Array[T] =
@@ -53,7 +53,8 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
   override def update(prioritisedIndex: PrioritisedIndex): Unit = 
     items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
 
-  override def updateLastBatch(newPriorities: IterableOnce[Float]): Unit =
+  override def updateLastBatch(newPriorities: Seq[Float]): Unit =
+    assert(lastBatchIndexes.size == newPriorities.size)
     lastBatchIndexes.iterator.zip(newPriorities).foreach(items.updateValue)
 
   override def getCurrentBufferSize(): Int = actualSize

@@ -10,4 +10,4 @@ trait PrioritisedReplayBuffer[T] extends ReplayBuffer[T]:
    * deleted item is meant to be updated)
    * @param newPriorities new priorites for the items from the last batch - needs to maintain the same order as last batch
    */
-  def updateLastBatch(newPriorities: IterableOnce[Float]): Unit
+  def updateLastBatch(newPriorities: Seq[Float]): Unit
