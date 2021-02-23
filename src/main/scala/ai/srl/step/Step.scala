@@ -1,7 +1,7 @@
 package ai.srl.step
 
-trait Step[Ac, Ob] extends BaseStep[Ac, Ob]:
+trait Step[Ac, Observation] extends BaseStep[Ac, Observation]:
 
-  def getPostObservation(): Ob
+  def getPostState(): Observation
 
   def getPostActionSpace(): Vector[Ac]

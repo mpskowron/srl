@@ -1,7 +1,7 @@
 package ai.srl.experience.replay
 
 import ai.srl.collection.CanClose
-import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
+import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
 import ai.srl.assertions.Assertions
 
@@ -132,7 +132,7 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
 
   }
 
-  private def assertUniformGetBatch(buffer: ReplayBuffer[?], samples: Int, batchSize: Int) =
+  private def assertUniformGetBatch[T](buffer: ReplayBuffer[T], samples: Int, batchSize: Int) =
     var manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
     val occurrences = manyBatches.groupBy(identity).view.mapValues(_.size)
     occurrences.values.foreach(assertEquals(_, (defaultPriority * batchSize * samples) / buffer.getCurrentBufferSize()))

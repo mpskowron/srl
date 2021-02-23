@@ -3,8 +3,8 @@ package ai.srl.experience.replay
 import ai.srl.collection.SumTree.ValuedItem
 import ai.srl.collection.{CyclicArray, SumTree}
 import ai.srl.experience.config.ReplayConfig
-import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
-import ai.srl.experience.replay.ReplayBuffer
+import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
+import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer
 
 import scala.reflect.ClassTag
 import alleycats.Empty

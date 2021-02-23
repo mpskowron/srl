@@ -3,7 +3,7 @@ package ai.srl.experience.collector
 import ai.djl.ndarray.{NDArray, NDArrays, NDList}
 import ai.djl.training.listener.TrainingListener.BatchData
 import ai.srl.djl.NDLists
-import ai.srl.experience.replay.HasPrioritisedReplayBuffer
+import ai.srl.experience.store.HasPrioritisedExperienceStore
 import org.slf4j.LoggerFactory
 
 import java.util.stream.Collectors
@@ -29,7 +29,7 @@ trait PrioritisedExperienceCollector[EC <: ExperienceCollector[?, ?, ?]]:
       collector.updateLastBatch(newPriorities)
 
 object PrioritisedExperienceCollector:
-  given [EC <: ExperienceCollector[?, ?, ?]](using HasPrioritisedReplayBuffer[EC, ?]): PrioritisedExperienceCollector[EC] with
+  given [EC <: ExperienceCollector[?, ?, ?]](using HasPrioritisedExperienceStore[EC, ?, ?]): PrioritisedExperienceCollector[EC] with
     extension (collector: EC)
-      def updateLastBatch(newPriorities: Seq[Float]): Unit = collector.prioritisedReplayBuffer.updateLastBatch(newPriorities)
+      def updateLastBatch(newPriorities: Seq[Float]): Unit = collector.prioritisedExpStore.updateLastBatch(newPriorities)
     

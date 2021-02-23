@@ -1,7 +1,7 @@
 package ai.srl.step
 
-trait BaseStep[Ac, Ob]:
-  def getPreObservation(): Ob
+trait BaseStep[Ac, Observation]:
+  def getPreObservation(): Observation
 
   def getAction(): Ac
 
