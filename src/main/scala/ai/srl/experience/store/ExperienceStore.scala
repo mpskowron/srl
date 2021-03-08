@@ -1,20 +1,5 @@
 package ai.srl.experience.store
 
-trait ExperienceStore[InputStep, OutputStep]:
-  def getBatch(): Array[OutputStep]
+import ai.srl.collection.{Extend, GetBatch, MaxSize, Size}
 
-  def addOne(item: InputStep): Unit
-
-  /**
-   * Add elements in order of iteration
-   *
-   * @param items
-   */
-  def addAll(items: IterableOnce[InputStep]): Unit =
-    items.iterator.foreach(addOne(_))
-
-  def getBatchSize(): Int
-
-  def getBufferSize(): Int
-
-  def getCurrentBufferSize(): Int
+trait ExperienceStore[S, Input, Output] extends Extend[S, Input] with GetBatch[S, Output] with Size[S] with MaxSize[S]

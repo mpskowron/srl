@@ -1,7 +1,7 @@
 package ai.srl.experience.replay
 
 import ai.srl.collection.SumTree.ValuedItem
-import ai.srl.collection.{CyclicArray, SumTree}
+import ai.srl.collection.{CyclicArray, MaxSize, Size, SumTree}
 import ai.srl.experience.config.ReplayConfig
 import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer
@@ -21,18 +21,7 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
   private var actualSize = 0
   private val random = Random()
   private var lastBatchIndexes: Seq[Int] = List.empty
-
-  // TODO should I use nextFloat or nextDouble and convert it to float after multiplication?
-  override def getBatch(): Array[T] =
-    getBatchInternal().map(_._1.item).toArray
-
-  @throws(classOf[Exception])
-  override def addOne(item: T): Unit = addOnePrioritised(item, defaultPriority)
   
-  override def getBatchSize(): Int = batchSize
-
-  override def getBufferSize(): Int = bufferSize
-
   override def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[T]] =
     getBatchInternal().map(item => PrioritisedIndexedItem(item._1.item, item._1.value, item._2)).toArray
   
@@ -44,17 +33,33 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
     val prioritisedIndexedBatch = priorities.map(items.get)
     lastBatchIndexes = prioritisedIndexedBatch.map(_._2)
     prioritisedIndexedBatch
-
-  @throws(classOf[Exception])
-  override def addOnePrioritised(item: T, priority: Float): Unit =
-    actualSize = math.min(actualSize + 1, bufferSize)
-    items.addOne(ValuedItem(item, priority))
-
+  
   override def update(prioritisedIndex: PrioritisedIndex): Unit = 
     items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
 
-  override def updateLastBatch(newPriorities: Seq[Float]): Unit =
-    assert(lastBatchIndexes.size == newPriorities.size)
-    lastBatchIndexes.iterator.zip(newPriorities).foreach(items.updateValue)
 
-  override def getCurrentBufferSize(): Int = actualSize
+object SumTreePrioritisedReplayBuffer {
+  given [T: Empty : ClassTag]: PrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
+    extension (prb: SumTreePrioritisedReplayBuffer[T])
+      def updateLastBatch(newPriorities: Seq[Float]): Unit =
+        assert(prb.lastBatchIndexes.size == newPriorities.size)
+        prb.lastBatchIndexes.iterator.zip(newPriorities).foreach(prb.items.updateValue)
+      
+      def getBatch(): Array[T] =
+        prb.getBatchInternal().map(_._1.item).toArray
+
+      def getBatchSize(): Int = prb.batchSize
+      
+      @throws(classOf[Exception])
+      def addOnePrioritised(item: T, priority: Float): Unit =
+        prb.actualSize = math.min(prb.actualSize + 1, prb.bufferSize)
+        prb.items.addOne(ValuedItem(item, priority))
+
+      // TODO should I use nextFloat or nextDouble and convert it to float after multiplication?
+      @throws(classOf[Exception])
+      def addOne(item: T): Unit = prb.addOnePrioritised(item, prb.defaultPriority)
+
+      def size(): Int = prb.actualSize
+
+      def maxSize(): Int = prb.bufferSize 
+}

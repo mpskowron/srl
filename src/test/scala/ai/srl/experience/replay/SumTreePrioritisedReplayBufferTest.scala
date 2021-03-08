@@ -35,7 +35,7 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
   test("not full buffer can be queried correctly") {
     val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
     buffer.addAll(0 to 6)
-    assertUniformGetBatch(buffer, 10000 * buffer.getCurrentBufferSize(), batchSize)
+    assertUniformGetBatch(buffer, 10000 * buffer.size(), batchSize)
   }
   
   test("getBatch and getIndexedBatch give results according to priority after additions and updates") {
@@ -132,8 +132,8 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
 
   }
 
-  private def assertUniformGetBatch[T](buffer: ReplayBuffer[T], samples: Int, batchSize: Int) =
+  private def assertUniformGetBatch[RB, T](buffer: RB, samples: Int, batchSize: Int)(using ReplayBuffer[RB, T]) =
     var manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
     val occurrences = manyBatches.groupBy(identity).view.mapValues(_.size)
-    occurrences.values.foreach(assertEquals(_, (defaultPriority * batchSize * samples) / buffer.getCurrentBufferSize()))
+    occurrences.values.foreach(assertEquals(_, (defaultPriority * batchSize * samples) / buffer.size()))
 
