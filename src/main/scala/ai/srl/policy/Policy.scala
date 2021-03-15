@@ -2,5 +2,6 @@ package ai.srl.policy
 
 import ai.srl.env.RlEnv
 
-trait Policy[Action, Environment <: RlEnv[Action, ?, ?]]:
-  def chooseAction(env: Environment): Action
+trait Policy[P, Action, Observation]:
+  extension (p: P)
+    def chooseAction(actionSpace: Vector[Action], observation: Observation): Action

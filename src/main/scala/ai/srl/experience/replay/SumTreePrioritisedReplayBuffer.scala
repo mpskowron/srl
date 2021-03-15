@@ -29,10 +29,13 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
     getBatchInternal().map(item => IndexedItem(item._1.item, item._2)).toArray
   
   private def getBatchInternal(): IndexedSeq[(ValuedItem[T], Int)] =
-    val priorities = (1 to batchSize).map(_ => random.nextFloat() * items.totalValue())
-    val prioritisedIndexedBatch = priorities.map(items.get)
-    lastBatchIndexes = prioritisedIndexedBatch.map(_._2)
-    prioritisedIndexedBatch
+    if actualSize == 0 then 
+      IndexedSeq.empty
+    else
+      val priorities = (1 to batchSize).map(_ => random.nextFloat() * items.totalValue())
+      val prioritisedIndexedBatch = priorities.map(items.get)
+      lastBatchIndexes = prioritisedIndexedBatch.map(_._2)
+      prioritisedIndexedBatch
   
   override def update(prioritisedIndex: PrioritisedIndex): Unit = 
     items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)

@@ -11,22 +11,8 @@ import ai.srl.observation.DJLObservation
 import java.util
 import scala.util.Using
 
-final class DJLMaxRewardPolicy[Action: DJLAction, Observation: DJLObservation, Environment <: RlEnv[Action, Observation, ?]]
-(trainer: Trainer, batchifier: Batchifier) extends Policy[Action, Environment]:
+final case class DJLMaxRewardPolicy[Action: DJLAction, Observation: DJLObservation](trainer: Trainer, batchifier: Batchifier):
   
-  override def chooseAction(env: Environment): Action =
-    val actionSpace = env.getActionSpace()
-    Using.resource(trainer.getManager().newSubManager()) { manager =>
-      val inputs = batchifier.batchify(
-        buildInputs(env.getObservation().toNDList(manager), actionSpace.toActionSpace(manager))
-      )
-      val actionScores: NDArray = trainer
-        .evaluate(inputs)
-        .singletonOrThrow.squeeze(-1)
-      val bestAction = Math.toIntExact(actionScores.argMax().getLong())
-      actionSpace(bestAction)
-    }
-
   // TODO Probably it can be changed to much more concise Scala implementation
   private def buildInputs(observation: NDList, actions: util.List[NDList]): Array[NDList] =
     val inputs: Array[NDList] = new Array[NDList](actions.size())
@@ -35,3 +21,21 @@ final class DJLMaxRewardPolicy[Action: DJLAction, Observation: DJLObservation, E
       inputs(i) = nextData
     }
     inputs
+
+object DJLMaxRewardPolicy:
+  // TODO Make sure that the observation passed here doesn't already include the action in it
+  given [Ac: DJLAction, Obs: DJLObservation]: Policy[DJLMaxRewardPolicy[Ac, Obs], Ac, Obs] with
+    extension (p: DJLMaxRewardPolicy[Ac, Obs])
+      def chooseAction(actionSpace: Vector[Ac], observation: Obs): Ac =
+        Using.resource(p.trainer.getManager().newSubManager()) { manager =>
+          val inputs = p.batchifier.batchify(
+            p.buildInputs(observation.toNDList(manager), actionSpace.toActionSpace(manager))
+          )
+          val actionScores: NDArray = p.trainer
+            .evaluate(inputs)
+            .singletonOrThrow.squeeze(-1)
+          val bestAction = Math.toIntExact(actionScores.argMax().getLong())
+          actionSpace(bestAction)
+        }
+
+        

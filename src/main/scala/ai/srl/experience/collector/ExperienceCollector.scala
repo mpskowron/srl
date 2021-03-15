@@ -6,29 +6,32 @@ import ai.srl.action.DJLAction
 import ai.srl.agent.Agent
 import ai.srl.env.RlEnv
 import ai.srl.policy.Policy
+import ai.srl.collection.GetBatch
 
 import scala.annotation.tailrec
 
-trait ExperienceCollector[Ac, E <: RlEnv[Ac, ?, ?], P <: Policy[Ac, E]]:
+trait ExperienceCollector[Action, Observation]:
 
+  def reset(): Unit
+  
   /**
    * Executes one action on the environment and saves obtained transition
    * @param env
    * @param policy
    * @return Some(reward) or None if environment has already ended
    */
-  def collect(env: E, policy: P): Option[Float]
+  def collect[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
   
-  def collectAll(env: E, policy: P): Option[Float] =
-    collect(env, policy).map(collectAllRec(env, policy, _))
+  def collectAll[P](policy: P)(using Policy[P, Action, Observation]): (Float, Int) =
+    collect(policy).map(collectAllRec(policy, _, 1)).getOrElse((0f, 0))
 
   @tailrec
-  private def collectAllRec(env: E, policy: P, accumulator: Float): Float =
-    val collected = collect(env, policy)
-    if collected.isDefined then
-      collectAllRec(env, policy, accumulator + collected.get)
+  private def collectAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using Policy[P, Action, Observation]): (Float, Int) =
+    val collectedItem = collect(policy)
+    if collectedItem.isDefined then
+      collectAllRec(policy, accumulator + collectedItem.get, collectedN + 1)
     else
-      accumulator
+      (accumulator, collectedN)
   
   /**
    * Executes n actions on the environment and saves obtained transitions
@@ -37,16 +40,16 @@ trait ExperienceCollector[Ac, E <: RlEnv[Ac, ?, ?], P <: Policy[Ac, E]]:
    * @param n >0 number of transitions to collect
    * @return Some(summed reward) or None if no steps were collected
    */
-  def collectN(env: E, policy: P, n: Int): Option[Float] =
+  def collectN[P](policy: P, n: Int)(using Policy[P, Action, Observation]): Option[Float] =
     assert(n > 0)
-    collect(env, policy).map(collectNRec(env, policy, n-1, _))
+    collect(policy).map(collectNRec(policy, n-1, _))
 
   @tailrec
-  private def collectNRec(env: E, policy: P, n: Int, accumulator: Float): Float =
+  private def collectNRec[P](policy: P, n: Int, accumulator: Float)(using Policy[P, Action, Observation]): Float =
     if n > 0 then
-      val collected = collect(env, policy)
+      val collected = collect(policy)
       if collected.isDefined then
-        collectNRec(env, policy, n-1, accumulator + collected.get)
+        collectNRec(policy, n-1, accumulator + collected.get)
       else
         accumulator
     else
@@ -58,7 +61,7 @@ trait ExperienceCollector[Ac, E <: RlEnv[Ac, ?, ?], P <: Policy[Ac, E]]:
    * @param policy
    * @return Some(summed reward) or None if no steps were collected
    */
-  def collectBatch(env: E, policy: P): Option[Float]
+  def collectBatch[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
 
   /**
    * 
