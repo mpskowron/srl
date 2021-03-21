@@ -4,6 +4,7 @@ import ai.srl.collection.CanClose
 import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
 import ai.srl.assertions.Assertions
+import org.junit.Assert.{assertEquals => jAssertEquals}
 
 import scala.reflect.ClassTag
 
@@ -43,6 +44,19 @@ class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
     assert(buffer.getBatch().size == 0)
     assert(buffer.getIndexedBatch().size == 0)
     assert(buffer.getPrioritisedIndexedBatch().size == 0)
+  }
+
+
+  test("clearAll removes all elements from the buffer") {
+    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+    buffer.addAll(1 to 100)
+    jAssertEquals(buffer.getBatch().size, batchSize)
+    jAssertEquals(buffer.getIndexedBatch().size, batchSize)
+    jAssertEquals(buffer.getPrioritisedIndexedBatch().size, batchSize)
+    buffer.clearAll()
+    jAssertEquals(buffer.getBatch().size, 0)
+    jAssertEquals(buffer.getIndexedBatch().size, 0)
+    jAssertEquals(buffer.getPrioritisedIndexedBatch().size, 0)
   }
   
   test("getBatch and getIndexedBatch give results according to priority after additions and updates") {

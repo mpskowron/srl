@@ -45,3 +45,7 @@ object LruReplayBuffer:
       def size(): Int = rb.actualSize
 
       def maxSize(): Int = rb.bufferSize
+
+      def clearAll(): Unit =
+        rb.firstTransitionIndex = 0
+        rb.actualSize = 0

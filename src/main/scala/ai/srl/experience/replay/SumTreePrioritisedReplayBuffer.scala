@@ -41,7 +41,7 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
     items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
 
 
-object SumTreePrioritisedReplayBuffer {
+object SumTreePrioritisedReplayBuffer:
   given [T: Empty : ClassTag]: PrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
     extension (prb: SumTreePrioritisedReplayBuffer[T])
       def updateLastBatch(newPriorities: Seq[Float]): Unit =
@@ -65,4 +65,8 @@ object SumTreePrioritisedReplayBuffer {
       def size(): Int = prb.actualSize
 
       def maxSize(): Int = prb.bufferSize 
-}
+      
+      def clearAll(): Unit =
+        prb.items.clearAll()
+        prb.actualSize = 0
+        prb.lastBatchIndexes = List.empty

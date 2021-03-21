@@ -60,3 +60,7 @@ class CyclicArray[T: ClassTag : Empty](val size: Int)extends AutoCloseable :
 
   def close() = array.foreach(closeIfNeeded)
 
+  def clearAll() =
+    close()
+    array.mapInPlace(_ => Empty[T].empty)
+    next = 0

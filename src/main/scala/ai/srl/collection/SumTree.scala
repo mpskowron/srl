@@ -80,6 +80,7 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
 
   override def close(): Unit = array.close()
 
+  def clearAll() = array.clearAll()
 
 object SumTree:
 

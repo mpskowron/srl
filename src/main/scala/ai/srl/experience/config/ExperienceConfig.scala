@@ -3,7 +3,8 @@ package ai.srl.experience.config
 import ai.srl.logging.Description
 import io.circe.Codec
 
-case class ExperienceConfig(replay: ReplayConfig, minBufferSize: Int) derives Codec.AsObject
+case class ExperienceConfig(replay: ReplayConfig, minBufferSize: Int) derives Codec.AsObject:
+  def withBatchSize(batchSize: Int): ExperienceConfig = copy(replay = replay.copy(batchSize = batchSize))
 
 case class ReplayConfig(batchSize: Int, bufferSize: Int, prioritised: PriorityConfig)
 
