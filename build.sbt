@@ -1,11 +1,12 @@
 import sbt.Keys.testFrameworks
 
-val dottyVersion = "3.0.0-M3"
+val dottyVersion = "3.0.0-RC1"
 
 val Versions = new {
-  val munit = "0.7.21"
-  val circe = "0.14.0-M3"
-  val djl = "0.10.0-SNAPSHOT"
+  val munit = "0.7.22"
+  val circe = "0.14.0-M4"
+  val djl = "0.10.0"
+  val cats = "2.4.2"
 }
 
 lazy val root = project
@@ -21,7 +22,7 @@ lazy val root = project
       "ai.djl" % "api" % Versions.djl,
       "io.circe" %% "circe-jawn" % Versions.circe,
       "net.sf.supercsv" % "super-csv" % "2.4.0",
-      "org.typelevel" %% "alleycats-core" % "2.3.1"
+      "org.typelevel" %% "alleycats-core" % Versions.cats
   ),
     testFrameworks += new TestFramework("munit.Framework"),
   )
