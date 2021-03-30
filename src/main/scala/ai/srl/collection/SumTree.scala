@@ -5,6 +5,7 @@ import ai.srl.collection.SumTree.{Node, ValuedItem}
 
 import scala.reflect.ClassTag
 import alleycats.Empty
+import cats.kernel.Eq
 
 import scala.annotation.tailrec
 
@@ -94,4 +95,11 @@ object SumTree:
 
   given emptyNode[T:Empty]: Empty[Node[T]] with
     def empty = Node(Empty[ValuedItem[T]].empty, 0f)
-    
+  
+  given [T: Empty : Eq]: Eq[Node[T]] with
+    def eqv(x: Node[T], y: Node[T]): Boolean = x.item == y.item
+
+  import ai.srl.collection.GetIterator
+  given [T: Empty : Eq]: GetIterator[SumTree[T], T] with
+    extension (tree: SumTree[T])
+      def iterator = tree.array.iterator.map(_._1.item)

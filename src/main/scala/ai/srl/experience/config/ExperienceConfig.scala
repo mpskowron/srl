@@ -5,6 +5,7 @@ import io.circe.Codec
 
 case class ExperienceConfig(replay: ReplayConfig, minBufferSize: Int) derives Codec.AsObject:
   def withBatchSize(batchSize: Int): ExperienceConfig = copy(replay = replay.copy(batchSize = batchSize))
+  def withBufferSize(bufferSize: Int): ExperienceConfig = copy(replay = replay.copy(bufferSize = bufferSize))
 
 case class ReplayConfig(batchSize: Int, bufferSize: Int, prioritised: PriorityConfig)
 

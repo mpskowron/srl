@@ -8,6 +8,7 @@ import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer
 
 import scala.reflect.ClassTag
 import alleycats.Empty
+import cats.kernel.Eq
 
 import scala.util.Random
 
@@ -70,3 +71,8 @@ object SumTreePrioritisedReplayBuffer:
         prb.items.clearAll()
         prb.actualSize = 0
         prb.lastBatchIndexes = List.empty
+  
+  import ai.srl.collection.GetIterator
+  given [T: ClassTag: Empty: Eq]: GetIterator[SumTreePrioritisedReplayBuffer[T], T] with
+    extension (tree: SumTreePrioritisedReplayBuffer[T])
+      def iterator = tree.items.iterator

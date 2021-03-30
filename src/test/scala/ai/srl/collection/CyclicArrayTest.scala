@@ -2,6 +2,7 @@ package ai.srl.collection
 
 import scala.reflect.ClassTag
 import alleycats.Empty
+import cats.kernel.Eq
 
 class CappedSizeArrayTest extends munit.FunSuite:
   import scala.language.implicitConversions
@@ -10,6 +11,8 @@ class CappedSizeArrayTest extends munit.FunSuite:
     case class IntWrp(var int: Int)
     given Empty[IntWrp] with 
       def empty = IntWrp(0)
+    given Eq[IntWrp] with
+      def eqv(x: IntWrp, y: IntWrp) = x == y
     given Conversion[Int, IntWrp] = IntWrp(_)
     given toList: Conversion[Seq[Int], List[IntWrp]] = _.toList.map(IntWrp(_))
 

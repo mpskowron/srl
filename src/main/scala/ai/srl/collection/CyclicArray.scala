@@ -5,6 +5,8 @@ import ai.srl.collection.Closeable.closeIfNeeded
 import scala.collection.{View, mutable}
 import scala.reflect.ClassTag
 import alleycats.Empty
+import alleycats.Empty.ops._
+import cats.kernel.Eq
 
 /**
  * Cyclic array following FIFO queue insertion and remove order. It also closes all closeable when they are removed from the array.
@@ -50,8 +52,6 @@ class CyclicArray[T: ClassTag : Empty](val size: Int)extends AutoCloseable :
   def update(idx: Int, operation: T => Unit): Unit =
     operation(array(idx))
 
-  def iterator = array.iterator
-
   def getNextIndex(): Int = next
   
   def head: T = this(next)
@@ -64,3 +64,9 @@ class CyclicArray[T: ClassTag : Empty](val size: Int)extends AutoCloseable :
     close()
     array.mapInPlace(_ => Empty[T].empty)
     next = 0
+
+object CyclicArray:
+  import ai.srl.collection.GetIterator
+  given [T: ClassTag : Empty : Eq]: GetIterator[CyclicArray[T], T] with
+    extension (array: CyclicArray[T])
+      def iterator = array.array.iterator.filter(_.nonEmpty)
