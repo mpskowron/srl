@@ -32,7 +32,27 @@ trait ExperienceCollector[Action, Observation]:
       collectAllRec(policy, accumulator + collectedItem.get, collectedN + 1)
     else
       (accumulator, collectedN)
+
+  /**
+   * Used for validation and testing phases
+   * @param policy
+   * @param _
+   * @tparam P
+   * @return
+   */
+  def step[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
   
+  def stepAll[P](policy: P)(using Policy[P, Action, Observation]): (Float, Int) =
+    step(policy).map(stepAllRec(policy, _, 1)).getOrElse((0f, 0))
+
+  @tailrec
+  private def stepAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using Policy[P, Action, Observation]): (Float, Int) =
+    val reward = step(policy)
+    if reward.isDefined then
+      stepAllRec(policy, accumulator + reward.get, collectedN + 1)
+    else
+      (accumulator, collectedN)
+
   /**
    * Executes n actions on the environment and saves obtained transitions
    * @param env
