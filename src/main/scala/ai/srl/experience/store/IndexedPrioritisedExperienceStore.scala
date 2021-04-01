@@ -2,19 +2,16 @@ package ai.srl.experience.store
 
 import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 
-// TODO Convert it to typeclass
-trait IndexedPrioritisedExperienceStore[In, Out]: // extends PrioritisedExperienceStore[In, Out]:
+trait IndexedPrioritisedExperienceStore[S, In, Out] extends PrioritisedExperienceStore[S, In, Out]:
+  extension (store: S)
+    def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[Out]]
+    
+    def getIndexedBatch(): Array[IndexedItem[Out]]
 
-  def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[Out]]
-  
-  def getIndexedBatch(): Array[IndexedItem[Out]]
+    def update(prioritisedIndex: PrioritisedIndex): Unit
 
-//  def addOnePrioritised(item: In, priority: Float): Unit
-
-  def update(prioritisedIndex: PrioritisedIndex): Unit
-
-  def updateBatch(prioritisedIndexes: IterableOnce[PrioritisedIndex]): Unit =
-    prioritisedIndexes.iterator.foreach(update)
+    def updateBatch(prioritisedIndexes: IterableOnce[PrioritisedIndex]): Unit =
+      prioritisedIndexes.iterator.foreach(update)
 
 object IndexedPrioritisedExperienceStore:
   case class PrioritisedIndexedItem[T](item: T, priority: Float, idx: Int)

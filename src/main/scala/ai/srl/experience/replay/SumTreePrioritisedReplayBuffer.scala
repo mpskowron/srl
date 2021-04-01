@@ -12,8 +12,7 @@ import cats.kernel.Eq
 
 import scala.util.Random
 
-class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val bufferSize: Int, val defaultPriority: Float) extends 
-  IndexedPrioritisedReplayBuffer[T]:
+class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val bufferSize: Int, val defaultPriority: Float):
   assert(batchSize > 0)
   assert(batchSize <= bufferSize)
   assert(defaultPriority >= 0)
@@ -23,12 +22,7 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
   private val random = Random()
   private var lastBatchIndexes: Seq[Int] = List.empty
   
-  override def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[T]] =
-    getBatchInternal().map(item => PrioritisedIndexedItem(item._1.item, item._1.value, item._2)).toArray
-  
-  override def getIndexedBatch(): Array[IndexedItem[T]] =
-    getBatchInternal().map(item => IndexedItem(item._1.item, item._2)).toArray
-  
+
   private def getBatchInternal(): IndexedSeq[(ValuedItem[T], Int)] =
     if actualSize == 0 then 
       IndexedSeq.empty
@@ -38,12 +32,9 @@ class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val
       lastBatchIndexes = prioritisedIndexedBatch.map(_._2)
       prioritisedIndexedBatch
   
-  override def update(prioritisedIndex: PrioritisedIndex): Unit = 
-    items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
-
 
 object SumTreePrioritisedReplayBuffer:
-  given [T: Empty : ClassTag]: PrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
+  given [T: Empty : ClassTag]: IndexedPrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
     extension (prb: SumTreePrioritisedReplayBuffer[T])
       def updateLastBatch(newPriorities: Seq[Float]): Unit =
         assert(prb.lastBatchIndexes.size == newPriorities.size)
@@ -71,7 +62,19 @@ object SumTreePrioritisedReplayBuffer:
         prb.items.clearAll()
         prb.actualSize = 0
         prb.lastBatchIndexes = List.empty
-  
+
+      //////////////// Indexed methods:
+      
+      def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[T]] =
+        prb.getBatchInternal().map(item => PrioritisedIndexedItem(item._1.item, item._1.value, item._2)).toArray
+
+      def getIndexedBatch(): Array[IndexedItem[T]] =
+        prb.getBatchInternal().map(item => IndexedItem(item._1.item, item._2)).toArray
+
+      override def update(prioritisedIndex: PrioritisedIndex): Unit =
+        prb.items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
+
+
   import ai.srl.collection.GetIterator
   given [T: ClassTag: Empty: Eq]: GetIterator[SumTreePrioritisedReplayBuffer[T], T] with
     extension (tree: SumTreePrioritisedReplayBuffer[T])
