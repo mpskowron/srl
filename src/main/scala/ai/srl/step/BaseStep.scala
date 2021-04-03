@@ -1,10 +1,11 @@
 package ai.srl.step
 
-trait BaseStep[Ac, Observation]:
-  def getPreObservation(): Observation
+trait BaseStep[S, Ac, Observation]:
+  extension (step: S)
+    def getPreObservation(): Observation
 
-  def getAction(): Ac
+    def getAction(): Ac
 
-  def getReward(): Float
+    def getReward(): Float
 
-  def isDone(): Boolean
+    def isDone(): Boolean
