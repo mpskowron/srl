@@ -3,7 +3,7 @@ package ai.srl.reward
 import ai.srl.action.DJLAction
 import ai.srl.env.RlEnv
 
-trait Reward[R, Ac, E <: RlEnv[Ac, ?, ?]]:
+trait Reward[R, Ac, E](using RlEnv[E, Ac, ?, ?]):
   extension (r: R)
     /**
      * @param env Assummed to be in a state after executing an action
