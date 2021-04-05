@@ -11,7 +11,7 @@ import ai.srl.policy.Policy
 import java.util
 import scala.util.Using
 
-type DJLAgent[Ac, Obs, P] = Agent[Ac, Obs, P, Batch, BatchData]
+type DJLAgent[A, Ac, Obs, P] = Agent[A, Ac, Obs, P, Batch, BatchData]
 
 object DJLAgent:
   def trainBatch(trainer: Trainer, batch: Batch): BatchData =
