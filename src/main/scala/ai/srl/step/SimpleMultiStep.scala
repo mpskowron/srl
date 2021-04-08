@@ -2,8 +2,8 @@ package ai.srl.step
 
 final case class SimpleMultiStep[Ac, State, Observation](observation: Observation, actionsWithStatesAndRewards: Seq[(Ac, State, Float)], 
                                                          done: Boolean):
-  def toSimpleSteps[SimpleStepObservation](stepObservationConverstion: (Observation, State) => SimpleStepObservation) =
-    actionsWithStatesAndRewards.map((action, state, reward) => SimpleStep(stepObservationConverstion(observation, state), action, reward, done))
+  def toSimpleSteps[SimpleStepObservation](stepObservationConversion: (Observation, State) => SimpleStepObservation) =
+    actionsWithStatesAndRewards.map((action, state, reward) => SimpleStep(stepObservationConversion(observation, state), action, reward, done))
 
 object SimpleMultiStep:
   given [Ac, State, Observation]: MultiStep[SimpleMultiStep[Ac,State, Observation], Ac, State, Observation] with

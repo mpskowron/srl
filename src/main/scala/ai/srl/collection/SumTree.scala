@@ -19,11 +19,11 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
   private val array: CyclicArray[Node[T]] = CyclicArray(capacity)
 
   @tailrec
-  private def updateSums(idx: Int, valueChange: Float): Unit =
+  private def updateSums(idx: Int): Unit =
     if idx >= 0 then
-      array.update(idx, _.sum += valueChange)
+      array.update(idx, node => node.sum = leftSum(idx) + rightSum(idx) + node.item.value)
       if idx > 0 then
-        updateSums((idx - 1) / 2, valueChange)
+        updateSums((idx - 1) / 2)
 
   private def leftSum(idx: Int): Float =
     val leftIdx = leftChildIdx(idx)
@@ -56,7 +56,7 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
   def addOne(item: ValuedItem[T]): Int =
     val oldItem = array.head
     val idx = array.add(Node(item, oldItem.sum))
-    updateSums(idx, item.value - oldItem.item.value)
+    updateSums(idx)
     idx
 
 
@@ -66,7 +66,7 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
   def updateValue(idx: Int, value: Float): Unit =
     val oldValue = array(idx).item.value
     array.update(idx, _.item.value = value)
-    updateSums(idx, value - oldValue)
+    updateSums(idx)
 
   /**
    *
@@ -74,7 +74,7 @@ class SumTree[T: Empty](val capacity: Int)extends AutoCloseable :
    * @return (item, index), index can be used to update value of the item
    */
   def get(sumOfValues: Float): (ValuedItem[T], Int) =
-    assert(sumOfValues >= 0)
+    assert(sumOfValues >= 0, s"sumOfValues should be >= 0, but is $sumOfValues")
     getInternal(sumOfValues, 0)
 
   def totalValue(): Float = array(0).sum
