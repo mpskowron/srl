@@ -4,8 +4,6 @@ import ai.srl.logging.Description
 import io.circe.Codec
 import io.circe.Codec.AsObject
 
-import java.time.ZonedDateTime
-
 case class AgentConfig(trainer: TrainerConfig) derives Codec.AsObject:
   def withLearningRate(learningRate: Float) = copy(trainer = trainer.copy(optimizer = OptimizerConfig(learningRate)))
 
