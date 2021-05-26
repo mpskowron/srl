@@ -5,7 +5,7 @@ val dottyVersion = "3.0.0"
 val Versions = new {
   val munit = "0.7.26"
   val circe = "0.14.0-M7"
-  val djl = "0.10.0"
+  val djl = "0.11.0"
   val cats = "2.6.1"
 }
 
@@ -22,7 +22,9 @@ lazy val root = project
       "ai.djl" % "api" % Versions.djl,
       "io.circe" %% "circe-jawn" % Versions.circe,
       "net.sf.supercsv" % "super-csv" % "2.4.0",
-      "org.typelevel" %% "alleycats-core" % Versions.cats
+      "org.typelevel" %% "alleycats-core" % Versions.cats,
+      "org.typelevel" %% "cats-core" % Versions.cats,
+      "eu.timepit"    %% "refined"           % "0.9.25",
   ),
     testFrameworks += new TestFramework("munit.Framework"),
   )

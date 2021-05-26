@@ -17,8 +17,8 @@ object DJLAgent:
   def trainBatch(trainer: Trainer, batch: Batch): BatchData =
     val batchData = BatchData(batch, util.HashMap(), util.HashMap())
     Using.resource(trainer.newGradientCollector) { collector =>
-        val data = trainer.getDataManager.getData(batch)
-        val labels = trainer.getDataManager.getLabels(batch)
+        val data = batch.getData
+        val labels = batch.getLabels
         val predictions = trainer.forward(data, labels)
         val time = System.nanoTime
         val lossValue = trainer.getLoss.evaluate(labels, predictions)
