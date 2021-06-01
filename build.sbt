@@ -24,7 +24,7 @@ lazy val root = project
       "net.sf.supercsv" % "super-csv" % "2.4.0",
       "org.typelevel" %% "alleycats-core" % Versions.cats,
       "org.typelevel" %% "cats-core" % Versions.cats,
-      "eu.timepit"    %% "refined"           % "0.9.25",
+      "eu.timepit"    %% "refined"           % "0.9.26",
   ),
     testFrameworks += new TestFramework("munit.Framework"),
   )
