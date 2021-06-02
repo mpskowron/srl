@@ -54,7 +54,7 @@ object SumTreePrioritisedReplayBuffer:
       @throws(classOf[Exception])
       def addOne(item: T): Unit = prb.addOnePrioritised(item, prb.defaultPriority)
 
-      def size(): Int = prb.actualSize
+      def size: Int = prb.actualSize
 
       def maxSize(): Int = prb.bufferSize 
       

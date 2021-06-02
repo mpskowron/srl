@@ -42,7 +42,7 @@ object LruReplayBuffer:
           rb.transitions(rb.actualSize) = step
           rb.actualSize += 1
 
-      def size(): Int = rb.actualSize
+      def size: Int = rb.actualSize
 
       def maxSize(): Int = rb.bufferSize
 
