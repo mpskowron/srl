@@ -7,10 +7,10 @@ val Versions = new {
   val circe = "0.14.0-M7"
   val djl   = "0.11.0"
   val cats  = "2.6.1"
-  val zio   = "1.0.8"
+  val zio   = "1.0.9"
 }
 
-lazy val root = project
+lazy val srl = project
   .in(file("."))
   .settings(
     name := "srl",
@@ -26,11 +26,11 @@ lazy val root = project
       "org.typelevel"  %% "alleycats-core"    % Versions.cats,
       "org.typelevel"  %% "cats-core"         % Versions.cats,
       "eu.timepit"     %% "refined"           % "0.9.26",
-      "dev.zio"        %% "zio-test"          % Versions.zio   % "test",
-      "dev.zio"        %% "zio-test-sbt"      % Versions.zio   % "test",
-      "dev.zio"        %% "zio-test-junit"    % Versions.zio   % "test",
-      "dev.zio"        %% "zio-test-magnolia" % Versions.zio   % "test",
-      "com.novocode"    % "junit-interface"   % "0.11"         % "test"
+      "dev.zio"        %% "zio-test"          % Versions.zio   % Test,
+      "dev.zio"        %% "zio-test-sbt"      % Versions.zio   % Test,
+      "dev.zio"        %% "zio-test-junit"    % Versions.zio   % Test,
+      "dev.zio"        %% "zio-test-magnolia" % Versions.zio   % Test,
+      "com.github.sbt"  % "junit-interface"   % "0.13.2"       % Test
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )

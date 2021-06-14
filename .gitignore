@@ -1,6 +1,4 @@
-/target
-/project/target
-/project/project/target
+target
 /results
 /src/test/results
 /src/test/benchmarks
@@ -11,3 +9,6 @@
 .bloop
 _site
 Worksheet.sc
+.metals
+.vscode
+metals.sbt
