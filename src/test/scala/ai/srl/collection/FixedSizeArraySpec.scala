@@ -21,8 +21,17 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
       val arr1       = FixedSizeCollection[size1.type, Int](Array(1, 2)).toOption.get
       val arr2       = FixedSizeCollection[size2.type, Int](Array(3, 2, 8)).toOption.get
 
-      val combined: FixedSizeArray[size1.type + size2.type, Int] = arr1.combine(arr2)
+      val combined: FixedSizeArray[size1.type + size2.type & Singleton, Int] = arr1.combine(arr2)
       assert(combined.unwrap.toList)(equalTo(List(1, 2, 3, 2, 8)))
+    },
+    test("Create a case class with arrays of compile time same size") {
+
+      val arrays = FixedSizeCollection[3, (Int, Int)](Array((1, 2), (2, 3), (3, 4))).toOption.get
+
+      val (arr1, arr2) = arrays.unzip()
+      val collections  = SameSizeCollections[3, Int, Array](arr1, arr2)
+      val combined     = arr1.combine(arr2)
+      assert(combined.unwrap.toList)(equalTo(List(1, 2, 3, 2, 3, 4)))
     },
     testM("Arrays have correct length after being added") {
       val arrayGen = Gen.listOf(Gen.int(Int.MinValue, Int.MaxValue)).map(_.toArray)
@@ -32,7 +41,7 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
         val fixed1 = FixedSizeCollection[size1.type, Int](left).toOption.get
         val fixed2 = FixedSizeCollection[size2.type, Int](right).toOption.get
 
-        val combined: FixedSizeArray[size1.type + size2.type, Int] = fixed1.combine(fixed2)
+        val combined = fixed1.combine(fixed2)
         assert(combined.unwrap.size)(equalTo(size1 + size2)) &&
         assert(combined.unwrap.toList)(equalTo((left ++ right).toList))
       }
@@ -46,15 +55,15 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
            """
       for
         wrongFixedSize <- typeCheck(
-          initialization + "val comb: FixedSizeArray[size1.type + size2.type + 1, Int] = arr1.combine(arr2)"
+          initialization + "val comb: FixedSizeArray[size1.type + size2.type + 1 & Singleton, Int] = arr1.combine(arr2)"
         )
         // Added to make previous example hard to invalidate through some code refactoring, because failed compilation
         // message cannot be verified
         correctCode <- typeCheck(
-          initialization + "val comb: FixedSizeArray[size1.type + size2.type, Int] = arr1.combine(arr2)"
+          initialization + "val comb: FixedSizeArray[size1.type + size2.type & Singleton, Int] = arr1.combine(arr2)"
         )
         wrongType <- typeCheck(
-          initialization + "val comb: FixedSizeArray[size1.type + size2.type, Double] = arr1.combine(arr2)"
+          initialization + "val comb: FixedSizeArray[size1.type + size2.type & Singleton, Double] = arr1.combine(arr2)"
         )
       yield assert(wrongFixedSize)(isLeft(anything)) &&
         assert(wrongType)(isLeft(anything)) &&
