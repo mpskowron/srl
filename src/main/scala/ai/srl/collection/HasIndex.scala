@@ -1,4 +1,4 @@
 package ai.srl.collection
 
-trait IndexedEntity[T]:
+trait HasIndex[T]:
   extension (t: T) def index: Int

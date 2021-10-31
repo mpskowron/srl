@@ -1,45 +1,65 @@
 package ai.srl.experience.replay
 
 import ai.srl.collection.SumTree.ValuedItem
-import ai.srl.collection.{CyclicArray, MaxSize, Size, SumTree}
+import ai.srl.collection.{CyclicArray, GetIterator, MaxSize, Size, SumTree}
 import ai.srl.experience.config.ReplayConfig
 import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
 import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer
 
 import scala.reflect.ClassTag
-import alleycats.Empty
 import cats.kernel.Eq
+import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
-class SumTreePrioritisedReplayBuffer[T: Empty: ClassTag](val batchSize: Int, val bufferSize: Int, val defaultPriority: Float):
+abstract class SumTreePrioritisedReplayBuffer[T] private (
+    val batchSize: Int,
+    val bufferSize: Int,
+    val defaultPriority: Float
+):
   assert(batchSize > 0)
   assert(batchSize <= bufferSize)
   assert(defaultPriority >= 0)
 
-  private val items = new SumTree[T](bufferSize)
-  private var actualSize = 0
-  private val random = Random()
+  private val logger = LoggerFactory.getLogger(this.getClass)
+  private[SumTreePrioritisedReplayBuffer] val items: SumTree[T]
+  private var actualSize                 = 0
+  private val random                     = Random()
   private var lastBatchIndexes: Seq[Int] = List.empty
-  
 
   private def getBatchInternal(): IndexedSeq[(ValuedItem[T], Int)] =
-    if actualSize == 0 then 
-      IndexedSeq.empty
+    if actualSize == 0 then IndexedSeq.empty
     else
-      val priorities = (1 to batchSize).map(_ => random.nextFloat() * items.totalValue())
+      val priorities              = (1 to batchSize).map(_ => random.nextFloat() * items.totalValue())
       val prioritisedIndexedBatch = priorities.map(items.get)
       lastBatchIndexes = prioritisedIndexedBatch.map(_._2)
       prioritisedIndexedBatch
-  
 
 object SumTreePrioritisedReplayBuffer:
-  given [T: Empty : ClassTag]: IndexedPrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
+  def apply[T: ClassTag, C[_]: GetIterator](
+      batchSize: Int,
+      bufferSize: Int,
+      defaultPriority: Float,
+      items: C[T]
+  ): SumTreePrioritisedReplayBuffer[T] =
+    val replayBuffer = new SumTreePrioritisedReplayBuffer[T](batchSize, bufferSize, defaultPriority):
+      override val items = SumTree.emptyOfCapacity(this.bufferSize)
+    items.iterator.foreach(item => replayBuffer.addOne(item))
+    replayBuffer
+
+  def apply[T: ClassTag](
+      batchSize: Int,
+      bufferSize: Int,
+      defaultPriority: Float
+  ): SumTreePrioritisedReplayBuffer[T] = new SumTreePrioritisedReplayBuffer[T](batchSize, bufferSize, defaultPriority):
+    override val items = SumTree.emptyOfCapacity(this.bufferSize)
+
+  given [T: ClassTag]: IndexedPrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
     extension (prb: SumTreePrioritisedReplayBuffer[T])
       def updateLastBatch(newPriorities: Seq[Float]): Unit =
         assert(prb.lastBatchIndexes.size == newPriorities.size)
         prb.lastBatchIndexes.iterator.zip(newPriorities).foreach(prb.items.updateValue)
-      
+
       def getBatch(): Array[T] =
         prb.getBatchInternal().map(_._1.item).toArray
 
@@ -74,8 +94,6 @@ object SumTreePrioritisedReplayBuffer:
       override def update(prioritisedIndex: PrioritisedIndex): Unit =
         prb.items.updateValue(prioritisedIndex.idx, prioritisedIndex.priority)
 
-
-  import ai.srl.collection.GetIterator
-  given [T: ClassTag: Empty: Eq]: GetIterator[SumTreePrioritisedReplayBuffer[T], T] with
-    extension (tree: SumTreePrioritisedReplayBuffer[T])
-      def iterator = tree.items.iterator
+  given sumTreePrioritisedRBGetIterator: GetIterator[SumTreePrioritisedReplayBuffer] with
+    extension [T](tree: SumTreePrioritisedReplayBuffer[T])
+      def iterator: Iterator[T] = tree.items.iterator

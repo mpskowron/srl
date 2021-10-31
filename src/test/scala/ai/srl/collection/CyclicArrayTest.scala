@@ -4,7 +4,7 @@ import scala.reflect.ClassTag
 import alleycats.Empty
 import cats.kernel.Eq
 
-class CappedSizeArrayTest extends munit.FunSuite:
+class CyclicArrayTest extends munit.FunSuite:
   import scala.language.implicitConversions
   
   test("adds and removes correct elements") {
@@ -16,7 +16,7 @@ class CappedSizeArrayTest extends munit.FunSuite:
     given Conversion[Int, IntWrp] = IntWrp(_)
     given toList: Conversion[Seq[Int], List[IntWrp]] = _.toList.map(IntWrp(_))
 
-    val array = new CyclicArray[IntWrp](12)
+    val array = CyclicArray.emptyOfSize[IntWrp](12)
 
     val indexes = array.addAll((1 to 100))
     assertEquals(indexes, (0, 100))
@@ -37,7 +37,7 @@ class CappedSizeArrayTest extends munit.FunSuite:
   }
 
   test("adds and removes correct closeable elements") {
-    val array = new CyclicArray[CanClose](4)
+    val array = CyclicArray.emptyOfSize[CanClose](4)
     val items = (1 to 10).map(i => CanClose(Some(i)))
     assertEquals(array.addAll(items), (0, 10))
 

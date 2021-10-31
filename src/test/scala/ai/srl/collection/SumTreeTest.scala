@@ -9,7 +9,7 @@ class SumTreeTest extends munit.FunSuite:
   import scala.language.implicitConversions
   
   test("correctly queries by summed value") {
-    val tree = new SumTree[Int](12)
+    val tree = SumTree.emptyOfCapacity[Int](12)
     
     val items = (1 to 100).map(ValuedItem(_, 0.1))
     tree.addAll(items)
@@ -45,7 +45,7 @@ class SumTreeTest extends munit.FunSuite:
   }
 
   test("adds, removes and queries correct closeable elements") {
-    val tree = new SumTree[CanClose](4)
+    val tree = SumTree.emptyOfCapacity[CanClose](4)
     val items = (1 to 10).map(i => ValuedItem(CanClose(Some(i)), 0.2))
     tree.addAll(items)
 
