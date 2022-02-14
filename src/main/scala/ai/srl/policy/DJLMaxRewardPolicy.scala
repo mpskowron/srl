@@ -29,7 +29,7 @@ object DJLMaxRewardPolicy:
   given [Ac: DJLAction, Obs: DJLNNInput]: Policy[DJLMaxRewardPolicy[Ac, Obs], Ac, Obs] with
     extension (p: DJLMaxRewardPolicy[Ac, Obs])
       def chooseAction(actionSpace: Vector[Ac], observation: Obs): Ac =
-        Using.resource(p.trainer.getManager().newSubManager()) { manager =>
+        Using.resource(p.trainer.getManager.newSubManager()) { manager =>
           val inputs = p.batchifier.batchify(
             p.buildInputs(observation.toNDList(manager), actionSpace.toActionSpace(manager))
           )

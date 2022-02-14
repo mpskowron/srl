@@ -22,7 +22,7 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
       val arr2       = FixedSizeCollection[size2.type, Int](Array(3, 2, 8)).toOption.get
 
       val combined: FixedSizeArray[size1.type + size2.type & Singleton, Int] = arr1.combine(arr2)
-      assert(combined.unwrap.toList)(equalTo(List(1, 2, 3, 2, 8)))
+      assertTrue(combined.unwrap.toList == List(1, 2, 3, 2, 8))
     },
     test("Create a case class with arrays of compile time same size") {
 
@@ -31,7 +31,7 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
       val (arr1, arr2) = arrays.unzip()
       val collections  = SameSizeCollections[3, Int, Array](arr1, arr2)
       val combined     = arr1.combine(arr2)
-      assert(combined.unwrap.toList)(equalTo(List(1, 2, 3, 2, 3, 4)))
+      assertTrue(combined.unwrap.toList == List(1, 2, 3, 2, 3, 4))
     },
     testM("Arrays have correct length after being added") {
       val arrayGen = Gen.listOf(Gen.int(Int.MinValue, Int.MaxValue)).map(_.toArray)
@@ -42,8 +42,8 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
         val fixed2 = FixedSizeCollection[size2.type, Int](right).toOption.get
 
         val combined = fixed1.combine(fixed2)
-        assert(combined.unwrap.size)(equalTo(size1 + size2)) &&
-        assert(combined.unwrap.toList)(equalTo((left ++ right).toList))
+        assertTrue(combined.unwrap.size == size1 + size2) &&
+        assertTrue(combined.unwrap.toList == (left ++ right).toList)
       }
     },
     testM("Fail compilation for incorrect types") {

@@ -1,13 +1,13 @@
 import sbt.Keys.testFrameworks
 
-val dottyVersion = "3.1.0"
+val dottyVersion = "3.1.1"
 
 val Versions =  new {
   val munit = "0.7.29"
   val circe = "0.14.1"
-  val djl   = "0.11.0"
+  val djl   = "0.15.0"
   val cats  = "2.6.1"
-  val zio   = "1.0.12"
+  val zio   = "1.0.13"
 }
 
 lazy val srl = project
