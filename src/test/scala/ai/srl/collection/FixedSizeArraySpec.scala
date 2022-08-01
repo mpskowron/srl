@@ -12,7 +12,7 @@ import cats.Semigroup
 import zio.test.Gen
 
 @RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
-class FixedSizeArraySpec extends DefaultRunnableSpec:
+class FixedSizeArraySpec extends ZIOSpecDefault:
 
   def spec = suite("FixedSizeArray suite")(
     test("Correctly add fixed sized arrays") {
@@ -33,7 +33,7 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
       val combined     = arr1.combine(arr2)
       assertTrue(combined.unwrap.toList == List(1, 2, 3, 2, 3, 4))
     },
-    testM("Arrays have correct length after being added") {
+    test("Arrays have correct length after being added") {
       val arrayGen = Gen.listOf(Gen.int(Int.MinValue, Int.MaxValue)).map(_.toArray)
       check(arrayGen, arrayGen) { (left, right) =>
         val size1: Int = left.length
@@ -46,7 +46,7 @@ class FixedSizeArraySpec extends DefaultRunnableSpec:
         assertTrue(combined.unwrap.toList == (left ++ right).toList)
       }
     },
-    testM("Fail compilation for incorrect types") {
+    test("Fail compilation for incorrect types") {
       val initialization = """
            val size1: Int = 2
            val size2: Int = 3

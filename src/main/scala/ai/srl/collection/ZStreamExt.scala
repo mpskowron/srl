@@ -1,7 +1,6 @@
 package ai.srl.collection
 import zio.stream.ZStream
 import zio.ZIO
-import zio.ZManaged
 import cats.syntax.bifunctor.toBifunctorOps
 
 object ZStreamExt:
@@ -9,7 +8,7 @@ object ZStreamExt:
     // Unfortunately this method collects the stream before splitting it to 2 other streams
     def flatMap2[O1, O2](f1: O => O1)(f2: O => O2): ZIO[R, E, (ZStream[Any, Nothing, O1], ZStream[Any, Nothing, O2])] =
       stream
-        .mapM(o => ZIO.succeed(f1(o)).zipPar(ZIO.succeed(f2(o))))
+        .mapZIO(o => ZIO.succeed(f1(o)).zipPar(ZIO.succeed(f2(o))))
         .runCollect
         .map(_.unzip.bimap(ZStream.fromChunk, ZStream.fromChunk))
 
@@ -17,7 +16,7 @@ object ZStreamExt:
         f1: O => Either[E1, O1]
     )(f2: O => Either[E2, O2]): ZIO[R, E | E1 | E2, (ZStream[Any, Nothing, O1], ZStream[Any, Nothing, O2])] =
       stream
-        .mapM[R, E | E1 | E2, (O1, O2)](o => ZIO.fromEither(f1(o)).zipPar(ZIO.fromEither(f2(o))))
+        .mapZIO[R, E | E1 | E2, (O1, O2)](o => ZIO.fromEither(f1(o)).zipPar(ZIO.fromEither(f2(o))))
         .runCollect
         .map(_.unzip.bimap(ZStream.fromChunk, ZStream.fromChunk))
 
