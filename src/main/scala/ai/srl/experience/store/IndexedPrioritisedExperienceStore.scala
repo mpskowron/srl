@@ -1,10 +1,10 @@
 package ai.srl.experience.store
 
-import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
+import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex}
 
 trait IndexedPrioritisedExperienceStore[S, In, Out] extends PrioritisedExperienceStore[S, In, Out]:
   extension (store: S)
-    def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedItem[Out]]
+//    def getPrioritisedIndexedBatch(): Array[PrioritisedIndexedElement[Out]]
     
     def getIndexedBatch(): Array[IndexedItem[Out]]
 
@@ -14,7 +14,6 @@ trait IndexedPrioritisedExperienceStore[S, In, Out] extends PrioritisedExperienc
       prioritisedIndexes.iterator.foreach(update)
 
 object IndexedPrioritisedExperienceStore:
-  case class PrioritisedIndexedItem[T](item: T, priority: Float, idx: Int)
   case class IndexedItem[T](item: T, idx: Int)
   opaque type PrioritisedIndex = (Int, Float)
 

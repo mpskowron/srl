@@ -1,6 +1,6 @@
 package ai.srl.experience.replay
 
-import ai.srl.experience.replay.ReplayBuffer
+import ai.srl.experience.replay.PureReplayBuffer
 import ai.srl.experience.config.ReplayConfig
 import ai.srl.collection.{Extend, GetBatch, MaxSize, Size}
 
@@ -18,7 +18,7 @@ class LruReplayBuffer[T: ClassTag](val batchSize: Int, val bufferSize: Int):
 object LruReplayBuffer:
   def apply[T: ClassTag](config: ReplayConfig): LruReplayBuffer[T] = new LruReplayBuffer[T](config.batchSize, config.bufferSize)
 
-  given [T: ClassTag]: ReplayBuffer[LruReplayBuffer[T], T] with
+  given [T: ClassTag]: PureReplayBuffer[LruReplayBuffer[T], T] with
     extension (rb: LruReplayBuffer[T])
       def getBatch(): Array[T] =
         (0 until rb.batchSize).map { _ =>

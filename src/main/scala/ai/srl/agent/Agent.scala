@@ -1,12 +1,13 @@
 package ai.srl.agent
 
 import ai.srl.env.RlEnv
-import ai.srl.policy.Policy
+import ai.srl.policy.PurePolicy
+import zio.{ZIO, Tag}
 
-trait Agent[A, Action, Observation, P ,TrainContext, TrainResult](using Policy[P, Action, Observation]):
-  extension (agent: A)
-    def policy: P
+trait Agent[-TrainContext, +TrainResult]:
+    def train(trainContext: TrainContext): ZIO[Any, Nothing, TrainResult]
 
-    def chooseAction(actionSpace: Vector[Action], observation: Observation): Action = policy.chooseAction(actionSpace, observation)
-    
-    def trainBatch(trainContext: TrainContext): TrainResult
+object Agent {
+  def train[TrainContext: Tag, TrainResult: Tag](trainContext: TrainContext): ZIO[Agent[TrainContext, TrainResult], Nothing, TrainResult] =
+    ZIO.serviceWithZIO(_.train(trainContext))
+}

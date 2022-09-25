@@ -3,9 +3,9 @@ package ai.srl.experience.collector
 import ai.djl.ndarray.NDManager
 import ai.djl.training.dataset.Batch
 import ai.srl.action.DJLAction
-import ai.srl.agent.Agent
+import ai.srl.agent.PureAgent
 import ai.srl.env.RlEnv
-import ai.srl.policy.Policy
+import ai.srl.policy.PurePolicy
 import ai.srl.collection.GetBatch
 
 import scala.annotation.tailrec
@@ -21,13 +21,13 @@ trait ExperienceCollector[C, Action, Observation]:
      * @param policy
      * @return Some(reward) or None if environment has already ended
      */
-    def collect[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
+    def collect[P](policy: P)(using PurePolicy[P, Action, Observation]): Option[Float]
     
-    def collectAll[P](policy: P)(using Policy[P, Action, Observation]): (Float, Int) =
+    def collectAll[P](policy: P)(using PurePolicy[P, Action, Observation]): (Float, Int) =
       collect(policy).map(collectAllRec(policy, _, 1)).getOrElse((0f, 0))
 
     @tailrec
-    private def collectAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using Policy[P, Action, Observation]): (Float, Int) =
+    private def collectAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using PurePolicy[P, Action, Observation]): (Float, Int) =
       val collectedItem = collect(policy)
       if collectedItem.isDefined then
         collectAllRec(policy, accumulator + collectedItem.get, collectedN + 1)
@@ -41,13 +41,13 @@ trait ExperienceCollector[C, Action, Observation]:
      * @tparam P
      * @return
      */
-    def step[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
+    def step[P](policy: P)(using PurePolicy[P, Action, Observation]): Option[Float]
     
-    def stepAll[P](policy: P)(using Policy[P, Action, Observation]): (Float, Int) =
+    def stepAll[P](policy: P)(using PurePolicy[P, Action, Observation]): (Float, Int) =
       step(policy).map(stepAllRec(policy, _, 1)).getOrElse((0f, 0))
 
     @tailrec
-    private def stepAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using Policy[P, Action, Observation]): (Float, Int) =
+    private def stepAllRec[P](policy: P, accumulator: Float, collectedN: Int)(using PurePolicy[P, Action, Observation]): (Float, Int) =
       val reward = step(policy)
       if reward.isDefined then
         stepAllRec(policy, accumulator + reward.get, collectedN + 1)
@@ -61,12 +61,12 @@ trait ExperienceCollector[C, Action, Observation]:
      * @param n >0 number of transitions to collect
      * @return Some(summed reward) or None if no steps were collected
      */
-    def collectN[P](policy: P, n: Int)(using Policy[P, Action, Observation]): Option[Float] =
+    def collectN[P](policy: P, n: Int)(using PurePolicy[P, Action, Observation]): Option[Float] =
       assert(n > 0)
       collect(policy).map(collectNRec(policy, n-1, _))
 
     @tailrec
-    private def collectNRec[P](policy: P, n: Int, accumulator: Float)(using Policy[P, Action, Observation]): Float =
+    private def collectNRec[P](policy: P, n: Int, accumulator: Float)(using PurePolicy[P, Action, Observation]): Float =
       if n > 0 then
         val collected = collect(policy)
         if collected.isDefined then
@@ -82,7 +82,7 @@ trait ExperienceCollector[C, Action, Observation]:
      * @param policy
      * @return Some(summed reward) or None if no steps were collected
      */
-    def collectBatch[P](policy: P)(using Policy[P, Action, Observation]): Option[Float]
+    def collectBatch[P](policy: P)(using PurePolicy[P, Action, Observation]): Option[Float]
 
     /**
      * 

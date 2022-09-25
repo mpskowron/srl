@@ -26,7 +26,7 @@ final case class DJLMaxRewardPolicy[Action: DJLAction, Observation: DJLNNInput](
 
 object DJLMaxRewardPolicy:
   // TODO Make sure that the observation passed here doesn't already include the action in it
-  given [Ac: DJLAction, Obs: DJLNNInput]: Policy[DJLMaxRewardPolicy[Ac, Obs], Ac, Obs] with
+  given [Ac: DJLAction, Obs: DJLNNInput]: PurePolicy[DJLMaxRewardPolicy[Ac, Obs], Ac, Obs] with
     extension (p: DJLMaxRewardPolicy[Ac, Obs])
       def chooseAction(actionSpace: Vector[Ac], observation: Obs): Ac =
         Using.resource(p.trainer.getManager.newSubManager()) { manager =>

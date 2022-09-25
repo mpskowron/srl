@@ -6,12 +6,12 @@ import ai.djl.training.{GradientCollector, Trainer}
 import ai.djl.training.dataset.Batch
 import ai.djl.training.listener.TrainingListener.BatchData
 import ai.srl.env.RlEnv
-import ai.srl.policy.Policy
+import ai.srl.policy.PurePolicy
 
 import java.util
 import scala.util.Using
 
-type DJLAgent[A, Ac, Obs, P] = Agent[A, Ac, Obs, P, Batch, BatchData]
+type DJLAgent[A, Ac, Obs, P] = PureAgent[A, Ac, Obs, P, Batch, BatchData]
 
 object DJLAgent:
   def trainBatch(trainer: Trainer, batch: Batch): BatchData =

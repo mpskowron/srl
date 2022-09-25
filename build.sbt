@@ -1,13 +1,14 @@
 import sbt.Keys.testFrameworks
 
-val dottyVersion = "3.1.3"
+val dottyVersion = "3.2.0"
 
 val Versions =  new {
   val munit = "0.7.29"
   val circe = "0.14.2"
-  val djl   = "0.15.0"
-  val cats  = "2.7.0"
-  val zio   = "2.0.0"
+  val circeConfig = "0.8.0-148-g173bd6e-SNAPSHOT"
+  val djl   = "0.18.0"
+  val cats  = "2.8.0"
+  val zio   = "2.0.2"
 }
 
 lazy val srl = project
@@ -19,13 +20,14 @@ lazy val srl = project
     scalaVersion := dottyVersion,
     resolvers += Resolver.mavenLocal,
     libraryDependencies ++= Seq(
+      "io.circe"           %% "circe-config"     % Versions.circeConfig,
       "org.scalameta"  %% "munit"               % Versions.munit % Test,
       "ai.djl"          % "api"                 % Versions.djl,
       "io.circe"       %% "circe-jawn"          % Versions.circe,
       "net.sf.supercsv" % "super-csv"           % "2.4.0",
       "org.typelevel"  %% "alleycats-core"      % Versions.cats,
       "org.typelevel"  %% "cats-core"           % Versions.cats,
-      "eu.timepit"     %% "refined"             % "0.9.29",
+      "eu.timepit"     %% "refined"             % "0.10.1",
       "dev.zio"        %% "zio"                 % Versions.zio,
       "dev.zio"        %% "zio-streams"         % Versions.zio,
       "dev.zio"        %% "zio-test"            % Versions.zio   % Test,

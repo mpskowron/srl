@@ -1,11 +1,12 @@
 package ai.srl.experience.replay
 
-import ai.srl.collection.{CanClose, ExtendWithPriority}
-import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
+import ai.srl.collection.ExtendWithPriority
+import org.junit.runner.RunWith
+import zio.test.*
+import zio.Console
 
-import scala.reflect.ClassTag
-
-class PrioritisedReplayBufferDerivationTest extends munit.FunSuite:
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class PrioritisedReplayBufferDerivationTest extends ZIOSpecDefault:
   
   final case class BufferWrapper(val buffer: SumTreePrioritisedReplayBuffer[Int])//, int: Int)
 
@@ -13,11 +14,17 @@ class PrioritisedReplayBufferDerivationTest extends munit.FunSuite:
     given ExtendWithPriority[BufferWrapper, Int] = ExtendWithPriority.derived
 
 
-  test("adds and removes correct elements".ignore) {
-    val wrapper = new BufferWrapper(SumTreePrioritisedReplayBuffer(4, 4, 1))//  , 5)
-    println(wrapper.buffer.getPrioritisedIndexedBatch().toList)
-    wrapper.addOnePrioritised(3, 2)
-    wrapper.addOnePrioritised(2, 4)
-    println(wrapper.buffer.getPrioritisedIndexedBatch().toList)
-  }
+  def spec = suite("prioritised replay buffer derivation")(
+    test("adds and removes correct elements") {
+      val wrapper = new BufferWrapper(SumTreePrioritisedReplayBuffer(4, 4, 1)) //  , 5)
+      for {
+        batch <- wrapper.buffer.getIndexedBatch
+        _ <- Console.printLine(batch.toList)
+        _ = wrapper.addOnePrioritised(3, 2)
+        _ =  wrapper.addOnePrioritised(2, 4)
+        batch2 <- wrapper.buffer.getIndexedBatch
+        _ <- Console.printLine(batch2.toList)
+      } yield assertTrue(true)
+    } @@ TestAspect.ignore
+  )
 

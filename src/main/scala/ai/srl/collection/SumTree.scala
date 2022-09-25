@@ -1,7 +1,7 @@
 package ai.srl.collection
 
 import ai.srl.collection.Closeable.closeIfNeeded
-import ai.srl.collection.SumTree.{Node, ValuedItem, sumOrZero}
+import ai.srl.collection.SumTree.{IndexedValue, IndexedValueItem, Node, ValuedItem, sumOrZero}
 
 import scala.reflect.ClassTag
 import cats.kernel.Eq
@@ -9,7 +9,9 @@ import cats.kernel.Eq
 import scala.annotation.tailrec
 
 /** This is not a standard sumtree implementation where only leaves are meaningful nodes, in this one every node
-  * represents an added Item
+  * represents an added Item. It cannot be used in multithreaded environment at all, because ValuedItem.value is a var
+  * and updating priorities of previously obtained indexes may update a recently inserted item instead (because it removes
+  * items cyclically)
   *
   * @param capacity
   * @tparam T
@@ -35,19 +37,20 @@ abstract class SumTree[T] private (val capacity: Int) extends AutoCloseable:
     if rightIdx < capacity then sumOrZero(array(rightIdx)) else 0
 
   @tailrec
-  private def getInternal(sumOfValues: Float, idx: Int): (ValuedItem[T], Int) =
+  private def getInternal(sumOfValues: Float, idx: Int): IndexedValueItem[T] =
     val lSum        = leftSum(idx)
     val rSum        = rightSum(idx)
     val currentItem = array(idx)
     if leftChildIdx(idx) < capacity && sumOfValues < lSum then getInternal(sumOfValues, leftChildIdx(idx))
     else
       val newSumOfValues: Float = sumOfValues - lSum - currentItem.item.value
-      if newSumOfValues < 0 || rightChildIdx(idx) >= capacity || rSum == 0 then (currentItem.item, idx)
+      if newSumOfValues < 0 || rightChildIdx(idx) >= capacity || rSum == 0 then IndexedElement(index = idx, element = currentItem.item)
       else getInternal(newSumOfValues, rightChildIdx(idx))
 
   /** @param item
     *   @return index in which the item was inserted
     */
+  // TODO It probably should remove the least/most valued item instead of the old one - not sure about that fully though
   def addOne(item: ValuedItem[T]): Int =
     val oldItem = array.head
     val idx     = array.add(Node(item, sumOrZero(oldItem)))
@@ -57,14 +60,14 @@ abstract class SumTree[T] private (val capacity: Int) extends AutoCloseable:
   def addAll(items: IterableOnce[ValuedItem[T]]): Unit =
     items.iterator.foreach(addOne)
 
-  def updateValue(idx: Int, value: Float): Unit =
-    array.update(idx, _.item.value = value)
-    updateSums(idx)
+  def updateValue(indexedValue: IndexedValue): Unit =
+    array.update(indexedValue.index, _.item.value = indexedValue.element)
+    updateSums(indexedValue.index)
 
   /** @param sumOfValues
     *   @return (item, index), index can be used to update value of the item
     */
-  def get(sumOfValues: Float): (ValuedItem[T], Int) =
+  def get(sumOfValues: Float): IndexedValueItem[T] =
     assert(sumOfValues >= 0, s"sumOfValues should be >= 0, but is $sumOfValues")
     getInternal(sumOfValues, 0)
 
@@ -73,14 +76,18 @@ abstract class SumTree[T] private (val capacity: Int) extends AutoCloseable:
   override def close(): Unit = array.close()
 
 object SumTree:
+  type IndexedValueItem[T] = IndexedElement[ValuedItem[T]]
+  type IndexedValue = IndexedElement[Float]
 
   extension [T](sumTree: SumTree[T])
     def clearAll(): Unit = sumTree.array.clearAll()
 
-  def emptyOfCapacity[T](capacity: Int) = new SumTree[T](capacity):
+  def emptyOfCapacity[T](capacity: Int): SumTree[T] = new SumTree[T](capacity):
     override val array = CyclicArray.emptyOfSize(this.capacity)
 
-  case class ValuedItem[T](item: T, var value: Float)
+  case class ValuedItem[T](item: T, private[SumTree] var value: Float):
+    def getValue: Float = value
+    def withValue(value: Float): ValuedItem[T] = copy(value = value)
 
   case class Node[T](item: ValuedItem[T], var sum: Float) extends AutoCloseable:
     override def close(): Unit = closeIfNeeded[T](item.item)

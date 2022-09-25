@@ -1,7 +1,7 @@
 package ai.srl.policy
 
-import ai.srl.env.RlEnv
+import zio.ZIO
 
-trait Policy[P, Action, Observation]:
-  extension (p: P)
-    def chooseAction(actionSpace: Vector[Action], observation: Observation): Action
+trait Policy[PolicyObservation, Action]:
+  def reset(): ZIO[Any, Throwable, Unit]
+  def action(observation: PolicyObservation): ZIO[Any, Throwable, Action]

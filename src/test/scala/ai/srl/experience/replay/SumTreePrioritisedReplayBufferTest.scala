@@ -1,164 +1,158 @@
 package ai.srl.experience.replay
 
-import ai.srl.collection.CanClose
-import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex, PrioritisedIndexedItem}
-import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
 import ai.srl.assertions.Assertions
-import org.junit.Assert.{assertEquals as jAssertEquals}
+import ai.srl.collection.{CanClose, IndexedElement}
+import ai.srl.experience.replay.ReplayBufferAssertions.assertCorrectBatches
+import ai.srl.experience.store.IndexedPrioritisedExperienceStore.{IndexedItem, PrioritisedIndex}
+import org.junit.Assert.assertEquals as jAssertEquals
+import org.junit.runner.RunWith
+import zio.test.TestResult.all
+import zio.*
+import zio.test.Assertion.approximatelyEquals
+import zio.test.{test, *}
 
+import scala.collection.MapView
 import scala.reflect.ClassTag
 
-class SumTreePrioritisedReplayBufferTest extends munit.FunSuite:
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class SumTreePrioritisedReplayBufferTest extends ZIOSpecDefault:
   private val batchSize       = 5
   private val bufferSize      = 12
   private val defaultPriority = 1
-  def assertEquals(actual: Int, expected: Int) =
-    Assertions.assertApproxEquals(actual, expected, math.max(700, expected / 250))
 
-  test("updateLastBatch works correctly") {
-    val buffer =
-      SumTreePrioritisedReplayBuffer[Int, IterableOnce](batchSize, bufferSize, defaultPriority.toFloat, 0 to 11)
-    val batch = buffer.getBatch()
-    // batch can contain repeated items, thus we calculate how many different items we had sampled
-    val numberOfDifferentItems = batch.toSet.size
-    buffer.updateLastBatch(List.fill(batch.size)(2f * defaultPriority))
-    val baseCount     = 10000
-    var totalPriority = bufferSize * defaultPriority + numberOfDifferentItems * defaultPriority
-    var sampleSize    = (totalPriority * baseCount).toInt
+  def assertApprox(expected: Int): Assertion[Int] = approximatelyEquals(expected, math.max(700, expected / 250))
+  def assertApproxEquals(actual: Int, expected: Int): TestResult =
+    assert(actual)(approximatelyEquals(expected, math.max(700, expected / 250)))
 
-    val manyBatches = (1 to sampleSize).flatMap(_ => buffer.getBatch())
-    val counts      = manyBatches.groupBy(identity).view.mapValues(_.size)
-    counts.foreach { (item, count) =>
-      val expected = baseCount * batchSize * defaultPriority * (if batch.contains(item) then 2 else 1)
-      assertEquals(count, expected)
+  def spec = suite("SumTreePrioritisedReplayBuffer")(
+    test("updateLastBatch works correctly") {
+      val buffer =
+        SumTreePrioritisedReplayBuffer[Int, IterableOnce](batchSize, bufferSize, defaultPriority.toFloat, 0 to 11)
+      for
+        indexedBatch <- buffer.getIndexedBatch
+        // batch can contain repeated items, thus we calculate how many different items we had sampled
+        numberOfDifferentItems = indexedBatch.toSet.size
+        batchUpdate            = List.fill(indexedBatch.size)(2f * defaultPriority)
+        _ <- buffer.updatePriorities(indexedBatch.map(_.index).zip(batchUpdate).map(IndexedElement.apply))
+        baseCount     = 10000
+        totalPriority = bufferSize * defaultPriority + numberOfDifferentItems * defaultPriority
+        sampleSize    = (totalPriority * baseCount).toInt
+        manyBatches <- buffer.getBatch.replicateZIO(sampleSize).map(_.flatten)
+        counts = manyBatches.groupBy(identity).view.mapValues(_.size)
+      yield all(counts.map { (item, count) =>
+        val rawBatch      = indexedBatch.map(_.element)
+        val expected: Int = baseCount * batchSize * defaultPriority * (if rawBatch.contains(item) then 2 else 1)
+        assert(count)(assertApprox(expected))
+      }.toSeq*)
+    },
+    test("not full buffer can be queried correctly") {
+      val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+      buffer.addAll(0 to 6)
+      assertUniformGetBatch(buffer, 10000 * buffer.size, batchSize)
+    },
+    test("empty buffer returns empty batches") {
+      val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+      for
+        getBatch        <- buffer.getBatch
+        getIndexedBatch <- buffer.getIndexedBatch
+      yield assertTrue(getBatch.isEmpty) && assertTrue(getIndexedBatch.isEmpty)
+    },
+    test("clearAll removes all elements from the buffer") {
+      val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+      buffer.addAll(1 to 100)
+      for
+        getBatch        <- buffer.getBatch
+        getIndexedBatch <- buffer.getIndexedBatch
+        _ = assertTrue(getBatch.size == batchSize)
+        _ = assertTrue(getIndexedBatch.size == batchSize)
+        _ = buffer.clearAll()
+        getBatch        <- buffer.getBatch
+        getIndexedBatch <- buffer.getIndexedBatch
+      yield assertTrue(getBatch.isEmpty) && assertTrue(getIndexedBatch.isEmpty)
+    },
+    test("getBatch and getIndexedBatch give results according to priority after additions and updates") {
+      val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
+      buffer.addAll(1 to 100)
+      var baseCount = 10000
+      val samples   = baseCount * bufferSize
+
+      for
+        _           <- assertUniformGetBatch(buffer, samples, batchSize)
+        manyBatches <- buffer.getBatch.replicateZIO(samples).map(_.flatten)
+        _ <- all(
+          manyBatches
+            .groupBy(identity)
+            .view
+            .mapValues(_.size)
+            .values
+            .map(assert(_)(assertApprox(baseCount * defaultPriority * batchSize)))
+            .toSeq*
+        )
+        _             = buffer.addOnePrioritised(1000, 50)
+        _             = buffer.update(PrioritisedIndex(3, 10.5))
+        _             = buffer.update(PrioritisedIndex(2, 0.2))
+        _             = baseCount = 1000
+        totalPriority = (bufferSize - 3 * defaultPriority) + 50 + 10.5 + 0.2
+        sampleSize    = (totalPriority * baseCount).toInt
+        manyBatches <- buffer.getBatch.replicateZIO(sampleSize).map(_.flatten)
+        counts = manyBatches.groupBy(identity).view.mapValues(_.size)
+        _               <- checkGetBatchesSampledCorrectly(counts, baseCount)
+        semiRichBatches <- buffer.getIndexedBatch.replicateZIO(sampleSize).map(_.flatten)
+        semiRichCounts = semiRichBatches.groupBy(identity).view.mapValues(_.size)
+        _ <- checkIndexedBatchesSampledCorrectly(semiRichCounts, baseCount)
+        _ <- buffer.updatePriorities(List(IndexedElement(5, 1.5f), IndexedElement(11, 0.8f)))
+        totalPriority2 = totalPriority - 2 * defaultPriority + 1.5 + 0.5
+        sampleSize     = (totalPriority2 * baseCount).toInt
+        batchesAfterPriorityUpdate <- buffer.getBatch.replicateZIO(sampleSize).map(_.flatten)
+        counts = batchesAfterPriorityUpdate.groupBy(identity).view.mapValues(_.size)
+      yield assertApproxEquals(counts(90), (baseCount * 1.5f).round * batchSize) && assertApproxEquals(
+        counts(96),
+        (baseCount * 0.8f).round * batchSize
+      )
+    },
+    test("adds and removes correct closeable elements") {
+      val items  = (1 to 10).map(i => CanClose(Some(i)))
+      val buffer = SumTreePrioritisedReplayBuffer[CanClose](4, 4, 1)
+      buffer.addAll(items)
+      buffer.update(PrioritisedIndex(0, 8.0f))
+
+      for
+        _ <- all(items.take(6).map(item => assertTrue(item.option.isEmpty))*) &&
+          all(items.drop(6).zip(7 to 10).map((actual, expected) => assertTrue(actual.option.contains(expected)))*)
+          && assertCorrectBatches(buffer, items.drop(6))
+        thousand = CanClose(Some(1000))
+        _        = buffer.addOnePrioritised(thousand, 4.0f)
+        _ <- assertTrue(thousand.option.contains(1000)) && assertTrue(items(6).option.isEmpty)
+        hundred = CanClose(Some(100))
+        _       = buffer.addOne(hundred)
+        _ <- assertTrue(hundred.option.contains(100)) && assertTrue(items(7).option.isEmpty)
+      yield all(items.drop(8).zip(9 to 10).map((actual, expected) => assertTrue(actual.option.contains(expected)))*)
     }
-  }
+  )
 
-  test("not full buffer can be queried correctly") {
-    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
-    buffer.addAll(0 to 6)
-    assertUniformGetBatch(buffer, 10000 * buffer.size, batchSize)
-  }
+  private def checkIndexedBatchesSampledCorrectly(semiRichCounts: MapView[IndexedElement[Int], Int], baseCount: Int) =
+    all(semiRichCounts.map {
+      case (IndexedElement(i, 1000), c) =>
+        assertApproxEquals(i, 4)
+        assertApproxEquals(c, baseCount * 50 * batchSize)
+      case (IndexedElement(i, 100), c) =>
+        assertApproxEquals(i, 3)
+        assertApproxEquals(c, (baseCount * 10.5f).round * batchSize)
+      case (IndexedElement(i, 99), c) =>
+        assertApproxEquals(i, 2)
+        assertApproxEquals(c, (baseCount * 0.2f).round * batchSize)
+      case (_, c) => assertApproxEquals(c, baseCount * defaultPriority * batchSize)
+    }.toSeq*)
 
-  test("empty buffer returns empty batches") {
-    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
-    assert(buffer.getBatch().size == 0)
-    assert(buffer.getIndexedBatch().size == 0)
-    assert(buffer.getPrioritisedIndexedBatch().size == 0)
-  }
+  private def checkGetBatchesSampledCorrectly(bachCounts: MapView[Int, Int], baseCount: Int) =
+    all(bachCounts.map {
+      case (1000, c) => assert(c)(assertApprox(baseCount * 50 * batchSize))
+      case (100, c)  => assert(c)(assertApprox((baseCount * 10.5f).round * batchSize))
+      case (99, c)   => assert(c)(assertApprox((baseCount * 0.2f).round * batchSize))
+      case (_, c)    => assert(c)(assertApprox(baseCount * defaultPriority * batchSize))
+    }.toSeq*)
 
-  test("clearAll removes all elements from the buffer") {
-    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
-    buffer.addAll(1 to 100)
-    jAssertEquals(buffer.getBatch().size, batchSize)
-    jAssertEquals(buffer.getIndexedBatch().size, batchSize)
-    jAssertEquals(buffer.getPrioritisedIndexedBatch().size, batchSize)
-    buffer.clearAll()
-    jAssertEquals(buffer.getBatch().size, 0)
-    jAssertEquals(buffer.getIndexedBatch().size, 0)
-    jAssertEquals(buffer.getPrioritisedIndexedBatch().size, 0)
-  }
-
-  test("getBatch and getIndexedBatch give results according to priority after additions and updates") {
-    val buffer = SumTreePrioritisedReplayBuffer[Int](batchSize, bufferSize, defaultPriority.toFloat)
-    buffer.addAll(1 to 100)
-    var baseCount = 10000
-    val samples   = baseCount * bufferSize
-    assertUniformGetBatch(buffer, samples, batchSize)
-
-    var manyBatches = (1 to samples).flatMap(_ => buffer.getPrioritisedIndexedBatch().map(_.item))
-    manyBatches
-      .groupBy(identity)
-      .view
-      .mapValues(_.size)
-      .values
-      .foreach(assertEquals(_, baseCount * defaultPriority * batchSize))
-
-    buffer.addOnePrioritised(1000, 50)
-    buffer.update(PrioritisedIndex(3, 10.5))
-    buffer.update(PrioritisedIndex(2, 0.2))
-
-    baseCount = 1000
-    var totalPriority = (bufferSize - 3 * defaultPriority) + 50 + 10.5 + 0.2
-    var sampleSize    = (totalPriority * baseCount).toInt
-
-    manyBatches = (1 to sampleSize).flatMap(_ => buffer.getBatch())
-    var counts = manyBatches.groupBy(identity).view.mapValues(_.size)
-    counts.foreach {
-      case (1000, c) => assertEquals(c, baseCount * 50 * batchSize)
-      case (100, c)  => assertEquals(c, (baseCount * 10.5f).round * batchSize)
-      case (99, c)   => assertEquals(c, (baseCount * 0.2f).round * batchSize)
-      case (_, c)    => assertEquals(c, baseCount * defaultPriority * batchSize)
-    }
-
-    val semiRichBatches = (1 to sampleSize).flatMap(_ => buffer.getIndexedBatch())
-    val semiRichCounts  = semiRichBatches.groupBy(identity).view.mapValues(_.size)
-    semiRichCounts.foreach {
-      case (IndexedItem(1000, i), c) =>
-        assertEquals(i, 4)
-        assertEquals(c, baseCount * 50 * batchSize)
-      case (IndexedItem(100, i), c) =>
-        assertEquals(i, 3)
-        assertEquals(c, (baseCount * 10.5f).round * batchSize)
-      case (IndexedItem(99, i), c) =>
-        assertEquals(i, 2)
-        assertEquals(c, (baseCount * 0.2f).round * batchSize)
-      case (_, c) => assertEquals(c, baseCount * defaultPriority * batchSize)
-    }
-
-    val richBatches = (1 to sampleSize).flatMap(_ => buffer.getPrioritisedIndexedBatch())
-    val richCounts  = richBatches.groupBy(identity).view.mapValues(_.size)
-    richCounts.foreach {
-      case (PrioritisedIndexedItem(1000, p, i), c) =>
-        assertEquals(i, 4)
-        assertEquals(p, 50.0f)
-        assertEquals(c, (baseCount * p).round * batchSize)
-      case (PrioritisedIndexedItem(100, p, i), c) =>
-        assertEquals(i, 3)
-        assertEquals(p, 10.5f)
-        assertEquals(c, (baseCount * p).round * batchSize)
-      case (PrioritisedIndexedItem(99, p, i), c) =>
-        assertEquals(i, 2)
-        assertEquals(p, 0.2f)
-        assertEquals(c, (baseCount * p).round * batchSize)
-      case (_, c) => assertEquals(c, baseCount * defaultPriority * batchSize)
-    }
-
-    buffer.updateBatch(List(PrioritisedIndex(5, 1.5), PrioritisedIndex(11, 0.8)))
-    totalPriority = totalPriority - 2 * defaultPriority + 1.5 + 0.5
-    sampleSize = (totalPriority * baseCount).toInt
-
-    manyBatches = (1 to sampleSize).flatMap(_ => buffer.getBatch())
-    counts = manyBatches.groupBy(identity).view.mapValues(_.size)
-    assertEquals(counts(90), (baseCount * 1.5f).round * batchSize)
-    assertEquals(counts(96), (baseCount * 0.8f).round * batchSize)
-  }
-
-  test("adds and removes correct closeable elements") {
-    val items  = (1 to 10).map(i => CanClose(Some(i)))
-    val buffer = SumTreePrioritisedReplayBuffer[CanClose](4, 4, 1)
-    buffer.addAll(items)
-    buffer.update(PrioritisedIndex(0, 8.0f))
-
-    items.take(6).foreach(item => assertEquals(item.option, None))
-    items.drop(6).zip(7 to 10).foreach((actual, expected) => assert(actual.option.contains(expected)))
-    assertCorrectBatches(buffer, items.drop(6))
-
-    val thousand = CanClose(Some(1000))
-    buffer.addOnePrioritised(thousand, 4.0f)
-    assert(thousand.option.contains(1000))
-    assert(items(6).option.isEmpty)
-
-    val hundred = CanClose(Some(100))
-    buffer.addOne(hundred)
-    assert(hundred.option.contains(100))
-    assert(items(7).option.isEmpty)
-
-    items.drop(8).zip(9 to 10).foreach((actual, expected) => assert(actual.option.contains(expected)))
-
-  }
-
-  private def assertUniformGetBatch[RB, T](buffer: RB, samples: Int, batchSize: Int)(using ReplayBuffer[RB, T]) =
-    var manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
+  private def assertUniformGetBatch[RB, T](buffer: RB, samples: Int, batchSize: Int)(using PureReplayBuffer[RB, T]) =
+    val manyBatches = (1 to samples).flatMap(_ => buffer.getBatch())
     val occurrences = manyBatches.groupBy(identity).view.mapValues(_.size)
-    occurrences.values.foreach(assertEquals(_, (defaultPriority * batchSize * samples) / buffer.size))
+    all(occurrences.values.map(assert(_)(assertApprox((defaultPriority * batchSize * samples) / buffer.size))).toSeq*)
