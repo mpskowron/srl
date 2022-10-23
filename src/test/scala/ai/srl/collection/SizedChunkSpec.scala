@@ -13,7 +13,7 @@ import scala.compiletime.ops.int.*
 class SizedChunkSpec extends ZIOSpecDefault:
 
   def spec = suite("SizedChunk suite")(
-    test("Correctly add fixed sized arrays") {
+    test("Correctly map") {
       val chunk: SizedChunk[3, Int] = SizedChunk[3,Int](Chunk(1,2,3))
 
       val mapped: SizedChunk[3, Int] = chunk.map(_ * 2)
