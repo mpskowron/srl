@@ -1,6 +1,6 @@
 package ai.srl.env
 
-trait EnvStateMapper[-Observation, State, -Ac] {
+trait EnvStateMapper[-Observation, State, -Ac, E] {
 
-  def mapState(observation: Observation, state: State, ac: Ac): State
+  def mapState(observation: Observation, state: State, ac: Ac): Either[E, State]
 }
