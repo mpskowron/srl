@@ -6,6 +6,12 @@ import ai.srl.step.{EnvStep, SimpleStep}
 import zio.ZIO.{fail, when}
 import zio.{Chunk, Tag, ZIO, ZLayer}
 
+/**
+ * 
+ * @tparam Ac
+ * @tparam Observation
+ * @tparam State if observation is bandit, this is usually a nonbandit part of the observation
+ */
 trait RLEnv[Ac, +Observation, State]:
 //  def reset(): ZIO[Any, Throwable, Unit]
 //  def step(action: Ac): ZIO[Any, Throwable, EnvStep[Ac, Observation]]
