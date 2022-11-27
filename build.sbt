@@ -8,7 +8,7 @@ val Versions =  new {
   val circeConfig = "0.8.0-148-g173bd6e-SNAPSHOT"
   val djl   = "0.18.0"
   val cats  = "2.8.0"
-  val zio   = "2.0.3"
+  val zio   = "2.0.4"
 }
 
 lazy val srl = project

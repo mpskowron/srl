@@ -1,22 +1,20 @@
 package ai.srl.experience.collector
 
 import ai.srl.collection.SizedChunk
-import ai.srl.env.{BanditEnv, RLEnv}
+import ai.srl.env.{IndexedBanditEnv, IndexedObservations, RLEnv}
 import ai.srl.step.{EnvStep, TimeseriesEnvStep}
 import zio.{Chunk, Tag, ZLayer}
 
-trait EnvStepCollector[Ac, InputData, Env]:
-  def collect(env: Env): Chunk[EnvStep[Ac, InputData]]
+// This class might be just overcomplication - collection may happen in the Buffer class layer constructor instead
+// Alternatively, InMemBanditEnv may implement this interface, which may simplify things
+trait EnvStepCollector[Ac, Observation]:
+  def collect(): Chunk[EnvStep[Ac, Observation]]
 
-trait BanditEnvCollector[Ac, Observation, InputData]
-    extends EnvStepCollector[Ac, InputData, BanditEnv[Ac, Observation]]:
-  override def collect(env: BanditEnv[Ac, Observation]): Chunk[EnvStep[Ac, InputData]]
-
-class TimeseriesBanditEnvCollector[Ac, Observation, Length <: Int]
-    extends BanditEnvCollector[Ac, Observation, SizedChunk[Length, Observation]]:
-  override def collect(env: BanditEnv[Ac, Observation]): Chunk[TimeseriesEnvStep[Ac, Observation, Length]] = ???
+class TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length <: Int](env: IndexedBanditEnv[Ac, EnvState, AgentState])
+    extends EnvStepCollector[Ac, (SizedChunk[Length, EnvState], AgentState)]:
+  override def collect(): Chunk[TimeseriesEnvStep[Ac, EnvState, AgentState, Length]] = ???
 
 object TimeseriesBanditEnvCollector:
-  def layer[Ac: Tag, Observation: Tag, Length <: Int: Tag]
-      : ZLayer[Any, Nothing, TimeseriesBanditEnvCollector[Ac, Observation, Length]] =
-    ZLayer.succeed(TimeseriesBanditEnvCollector[Ac, Observation, Length])
+  def layer[Ac: Tag, EnvState: Tag, AgentState: Tag, Length <: Int: Tag]
+      : ZLayer[IndexedBanditEnv[Ac, EnvState, AgentState], Nothing, TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length]] =
+    ZLayer.fromFunction(TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length](_))

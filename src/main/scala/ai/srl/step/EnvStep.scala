@@ -7,11 +7,10 @@ trait EnvStep[+Ac, +Observation]:
   def action: Ac
   def reward: Float
 
-case class BaseEnvStep[Ac, Observation](action: Ac, preObservation: Observation, reward: Float)
-    extends EnvStep[Ac, Observation]
+case class BaseEnvStep[Ac, Observation](action: Ac, preObservation: Observation, reward: Float) extends EnvStep[Ac, Observation]
 
-case class TimeseriesEnvStep[Ac, Observation, S <: Int](
+case class TimeseriesEnvStep[Ac, EnvState, AgentState, S <: Int](
     action: Ac,
-    preObservation: SizedChunk[S, Observation],
+    preObservation: (SizedChunk[S, EnvState], AgentState),
     reward: Float
-) extends EnvStep[Ac, SizedChunk[S, Observation]]
+) extends EnvStep[Ac, (SizedChunk[S, EnvState], AgentState)]
