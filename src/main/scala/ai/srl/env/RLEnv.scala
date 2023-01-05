@@ -1,7 +1,7 @@
 package ai.srl.env
 
 import ai.srl.collection.SizedChunk
-import ai.srl.env.RLEnv.RLEnvObservation
+import ai.srl.env.RLEnv.RLEnvObs
 import ai.srl.policy.Policy
 import ai.srl.step.{EnvStep, SimpleStep}
 import zio.ZIO.{fail, fromEither, when}
@@ -10,18 +10,18 @@ import zio.{Chunk, Tag, ZIO, ZLayer}
 /** @tparam Action
   *   Action that Agent can perform. As an alternative implementation AgentState could be deleted and moved as a part of the Action
   * @tparam EnvState
-  *   See [[RLEnv.RLEnvObservation.envState]]
+  *   See [[RLEnv.RLEnvObs.envState]]
   * @tparam AgentState
-  *   See [[RLEnv.RLEnvObservation.agentState]]
+  *   See [[RLEnv.RLEnvObs.agentState]]
   */
 trait RLEnv[Action, +EnvState, AgentState]:
 //  def reset(): ZIO[Any, Throwable, Unit]
 //  def step(action: Ac): ZIO[Any, Throwable, EnvStep[Ac, Observation]]
 
-  def foldZIO[E](initialState: AgentState)(
-      policy: (EnvState, AgentState) => ZIO[Any, Nothing, Action],
-      stateMapper: (EnvState, AgentState, Action) => Either[E, AgentState]
-  ): ZIO[Any, E, Chunk[AgentState]]
+  def foldZIO[PolicyError, StateMapperError](initialState: AgentState)(
+      policy: RLEnvObs[EnvState, AgentState] => ZIO[Any, PolicyError, Action],
+      stateMapper: (EnvState, AgentState, Action) => Either[StateMapperError, AgentState]
+  ): ZIO[Any, PolicyError | StateMapperError, Chunk[AgentState]]
 
 object RLEnv:
 
@@ -31,7 +31,13 @@ object RLEnv:
     *   A state of the agent in environment, part of state agent can directly influence (e.g. number of bullets in the pocket); if envState
     *   is bandit, this might be a nonbandit "part of"/"addition to" the envState
     */
-  case class RLEnvObservation[+EnvState, AgentState](envState: EnvState, agentState: AgentState)
+  case class RLEnvObs[+EnvState, +AgentState](envState: EnvState, agentState: AgentState)
+
+  /** Timeseries Observation
+    * @tparam TS
+    *   Timeseries size
+    */
+  type TsObs[EnvState, +AgentState, TS <: Int] = RLEnvObs[SizedChunk[TS, EnvState], AgentState]
 
   enum TimeseriesRLEnvError:
     case EnvSizeBiggerThanTimeseriesHistorySizes(envSize: Int, thSize: Int)
@@ -47,24 +53,24 @@ object RLEnv:
     * @return
     */
   // TODO You should probably just change it to a trait TimeseriesBanditRLEnv for simplicity
-  def timeseriesRlEnvLayer[Ac: Tag, EnvState: Tag, AgentState: Tag, TS <: Int: ValueOf: Tag]: ZLayer[
-    IndexedObservations[EnvState] & Policy[(SizedChunk[TS, EnvState], AgentState), Ac],
-    TimeseriesRLEnvError,
-    RLEnv[Ac, SizedChunk[TS, EnvState], AgentState]
-  ] = ZLayer {
+  def timeseriesRlEnvLayer[Ac: Tag, EnvState: Tag, AgentState: Tag, TS <: Int: ValueOf: Tag]
+      : ZLayer[IndexedObservations[EnvState], TimeseriesRLEnvError, RLEnv[Ac, SizedChunk[TS, EnvState], AgentState]] = ZLayer {
     for
-      banditEnv           <- ZIO.service[IndexedObservations[EnvState]]
-      rlEnvMaxIndex       <- validateTimeseriesRlEnvArguments(banditEnv.size(), valueOf[TS])
-      indexedObservations <- Chunk.range(0, rlEnvMaxIndex).mapZIO(index => fromEither(banditEnv.observations[TS](index))).orDie
+      banditEnv     <- ZIO.service[IndexedObservations[EnvState]]
+      rlEnvMaxIndex <- validateTimeseriesRlEnvArguments(banditEnv.size(), valueOf[TS])
+      indexedObservations: Chunk[SizedChunk[TS, EnvState]] <- Chunk
+        .range(0, rlEnvMaxIndex)
+        .mapZIO(index => fromEither(banditEnv.observations[TS](index)))
+        .orDie
     yield new RLEnv[Ac, SizedChunk[TS, EnvState], AgentState]:
-      override def foldZIO[E](initialState: AgentState)(
-          policy: (SizedChunk[TS, EnvState], AgentState) => ZIO[Any, Nothing, Ac],
-          stateMapper: (SizedChunk[TS, EnvState], AgentState, Ac) => Either[E, AgentState]
-      ): ZIO[Any, E, Chunk[AgentState]] =
+      override def foldZIO[PE, SME](initialState: AgentState)(
+          policy: RLEnvObs[SizedChunk[TS, EnvState], AgentState] => ZIO[Any, PE, Ac],
+          stateMapper: (SizedChunk[TS, EnvState], AgentState, Ac) => Either[SME, AgentState]
+      ): ZIO[Any, PE | SME, Chunk[AgentState]] =
         indexedObservations.mapAccumZIO(initialState)((agentState, envState) =>
           for
-            action        <- policy(envState, agentState)
-            newAgentState <- ZIO.fromEither(stateMapper(envState, agentState, action))
+            action        <- policy(RLEnvObs(envState, agentState))
+            newAgentState <- ZIO.fromEither[PE | SME, AgentState](stateMapper(envState, agentState, action))
           yield (newAgentState, newAgentState)
         ) map (_._2)
   }
@@ -84,12 +90,10 @@ object RLEnv:
     _ <- when(rlEnvSize < 0)(fail(TimeseriesRLEnvError.EnvSizeBiggerThanTimeseriesHistorySizes(banditEnvSize, timeseriesHistorySize)))
   yield rlEnvSize
 
-  def foldZIO[Ac: Tag, EnvState: Tag, AgentState: Tag, E: Tag](
-      initialState: AgentState
-  )(
-      policy: (EnvState, AgentState) => ZIO[Any, Nothing, Ac],
-      stateMapper: (EnvState, AgentState, Ac) => Either[E, AgentState]
-  ): ZIO[RLEnv[Ac, EnvState, AgentState], E, Chunk[AgentState]] =
+  def foldZIO[Ac: Tag, EnvState: Tag, AgentState: Tag, PErr, MErr](initialState: AgentState)(
+      policy: RLEnvObs[EnvState, AgentState] => ZIO[Any, PErr, Ac],
+      stateMapper: (EnvState, AgentState, Ac) => Either[MErr, AgentState]
+  ): ZIO[RLEnv[Ac, EnvState, AgentState], MErr | PErr, Chunk[AgentState]] =
     ZIO.serviceWithZIO[RLEnv[Ac, EnvState, AgentState]](_.foldZIO(initialState)(policy, stateMapper))
 
 opaque type ActionReward[-State, -Ac] <: (State, Ac) => Float = (State, Ac) => Float

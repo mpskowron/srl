@@ -6,9 +6,10 @@ val Versions =  new {
   val munit = "0.7.29"
   val circe = "0.14.2"
   val circeConfig = "0.8.0-148-g173bd6e-SNAPSHOT"
-  val djl   = "0.18.0"
+  val djl   = "0.20.0"
   val cats  = "2.8.0"
-  val zio   = "2.0.4"
+  val zio   = "2.0.5"
+  val zioConfig = "3.0.7"
 }
 
 lazy val srl = project
@@ -35,7 +36,10 @@ lazy val srl = project
       "dev.zio"        %% "zio-test-junit"      % Versions.zio   % Test,
       "dev.zio"        %% "zio-test-magnolia"   % Versions.zio   % Test,
       "com.github.sbt"  % "junit-interface"     % "0.13.3"       % Test,
-      "org.typelevel"  %% "shapeless3-deriving" % "3.1.0"
+      "org.typelevel"  %% "shapeless3-deriving" % "3.1.0",
+      "dev.zio" %% "zio-config" % Versions.zioConfig,
+      "dev.zio" %% "zio-config-magnolia" % Versions.zioConfig,
+      "dev.zio" %% "zio-config-typesafe" % Versions.zioConfig,
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )

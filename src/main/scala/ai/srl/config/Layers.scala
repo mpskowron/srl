@@ -5,7 +5,11 @@ import io.circe
 import io.circe.Decoder
 import io.circe.config.parser
 import org.slf4j.LoggerFactory
-import zio.{Tag, Unsafe, ZEnvironment, ZIO, ZLayer}
+import zio.config.ReadError
+import zio.config.magnolia.{Descriptor, descriptor}
+import zio.config.typesafe.TypesafeConfig
+import zio.{Layer, Tag, Unsafe, ZEnvironment, ZIO, ZLayer}
+import zio.config.*
 
 object Layers:
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -29,3 +33,8 @@ object Layers:
         ZIO.service[T].provideLayer(configLayer[T](path, fileName))
       }
       .getOrThrowFiberFailure()
+
+  def configLayer[A: Descriptor: Tag](path: String): Layer[ReadError[String], A] = configLayer(path, descriptor[A])
+
+  def configLayer[A: Tag](path: String, desc: ConfigDescriptor[A]): Layer[ReadError[String], A] =
+    TypesafeConfig.fromTypesafeConfig(ZIO.attempt(ConfigFactory.load().getConfig(path)), desc)

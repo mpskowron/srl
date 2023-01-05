@@ -24,8 +24,8 @@ class SizedChunkSpec extends ZIOSpecDefault:
       case class Test(a: Int, b: String)
       val chunk = Chunk(Test(4, "dsff"), Test(5, "sdloyhasiojf"), Test(8, "sdlfghaiosyhfvmas"), Test(2, "dslkfhjsaf"))
       def mapFunc(test: Test): Int = {
-        println("in mapFunc:")
-        println(test.a)
+//        println("in mapFunc:")
+//        println(test.a)
         test.a
       }
 //      AnyRefArray(chunk.toArray, self.offset + offset, self.length - offset min length)
