@@ -5,7 +5,7 @@ import cats.kernel.Semigroup
 import zio.Chunk
 import eu.timepit.refined.collection.Size
 import eu.timepit.refined.generic.Equal
-import eu.timepit.refined.api.Refined
+import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.refineV
 
@@ -14,6 +14,7 @@ import eu.timepit.refined.internal.WitnessAs
 import cats.Functor
 import cats.syntax.all.toFunctorOps
 import SizedTypeWrapper.SizedType2
+import zio.config.magnolia.Descriptor
 
 object RefinedExtensions:
   type SInt                     = Int & Singleton
@@ -22,9 +23,8 @@ object RefinedExtensions:
   def newSizedChunk[T](chunk: Chunk[T]): SizedTypeWrapper[SizedType2[T, SizedChunk]] =
     val s = chunk.size
     new SizedTypeWrapper[SizedType2[T, SizedChunk]](s, Refined.unsafeApply[Chunk[T], Size[Equal[s.type]]](chunk))
-  
-  given [S1 <: SInt, S2 <: SInt, T]: Combine[SizedChunk[S1, T], SizedChunk[S2, T], SizedChunk[S1 + S2 & Singleton, T]]
-    with
+
+  given [S1 <: SInt, S2 <: SInt, T]: Combine[SizedChunk[S1, T], SizedChunk[S2, T], SizedChunk[S1 + S2 & Singleton, T]] with
     extension (a: SizedChunk[S1, T])
       def combine(b: SizedChunk[S2, T]): SizedChunk[S1 + S2 & Singleton, T] = Refined.unsafeApply(a.value ++ b.value)
 
@@ -43,3 +43,14 @@ object RefinedExtensions:
   given [F[_]: Functor, P]: Functor[FRefined[F, P]] with
     override def map[A, B](fa: Refined[F[A], Size[P]])(f: A => B): Refined[F[B], Size[P]] =
       Refined.unsafeApply(fa.value.map(f))
+
+  import zio.config.*
+
+  given [A: Descriptor, P](using Validate[A, P]): Descriptor[Refined[A, P]] =
+    Descriptor.from(
+      summon[Descriptor[A]].desc
+        .transformOrFail(
+          refineV[P](_),
+          from => Right(from.value)
+        )
+    )
