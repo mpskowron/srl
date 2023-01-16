@@ -7,9 +7,9 @@ import io.circe.config.parser
 import org.slf4j.LoggerFactory
 import zio.config.ReadError
 import zio.config.magnolia.{Descriptor, descriptor}
-import zio.config.typesafe.TypesafeConfig
-import zio.{Layer, Tag, Unsafe, ZEnvironment, ZIO, ZLayer}
-import zio.config.*
+import zio.config.typesafe.{TypesafeConfig, TypesafeConfigSource}
+import zio.{Layer, Tag, ULayer, Unsafe, ZEnvironment, ZIO, ZLayer}
+import zio.config.*, ConfigDescriptor.*, ConfigSource.*
 
 object Layers:
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -34,7 +34,15 @@ object Layers:
       }
       .getOrThrowFiberFailure()
 
-  def configLayer[A: Descriptor: Tag](path: String): Layer[ReadError[String], A] = configLayer(path, descriptor[A])
+  def configLayer[A: Descriptor: Tag](path: String): ZLayer[ConfigSource, ReadError[String], A] = configLayer(path, descriptor[A])
 
-  def configLayer[A: Tag](path: String, desc: ConfigDescriptor[A]): Layer[ReadError[String], A] =
-    TypesafeConfig.fromTypesafeConfig(ZIO.attempt(ConfigFactory.load().getConfig(path)), desc)
+  def configLayer[A: Tag](path: String, desc: ConfigDescriptor[A]): ZLayer[ConfigSource, ReadError[String], A] =
+    ZLayer {
+      for {
+        configSource <- ZIO.service[ConfigSource]
+        result <- read(nested(path)(desc) from configSource)
+      } yield result
+    }
+
+  def typesafeConfigSourceLayer(configFileName: String = "application.conf"): ULayer[ConfigSource] =
+    ZLayer.succeed(TypesafeConfigSource.fromTypesafeConfig(ZIO.attempt(ConfigFactory.load(configFileName))))
