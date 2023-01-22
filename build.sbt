@@ -8,7 +8,7 @@ val Versions =  new {
   val circeConfig = "0.8.0-148-g173bd6e-SNAPSHOT"
   val djl   = "0.20.0"
   val cats  = "2.8.0"
-  val zio   = "2.0.5"
+  val zio   = "2.0.6"
   val zioConfig = "3.0.7"
 }
 

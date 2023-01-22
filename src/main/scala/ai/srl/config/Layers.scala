@@ -36,13 +36,16 @@ object Layers:
 
   def configLayer[A: Descriptor: Tag](path: String): ZLayer[ConfigSource, ReadError[String], A] = configLayer(path, descriptor[A])
 
-  def configLayer[A: Tag](path: String, desc: ConfigDescriptor[A]): ZLayer[ConfigSource, ReadError[String], A] =
+  def configLayer[A: Tag](path: String, desc: => ConfigDescriptor[A]): ZLayer[ConfigSource, ReadError[String], A] =
     ZLayer {
-      for {
+      for
         configSource <- ZIO.service[ConfigSource]
-        result <- read(nested(path)(desc) from configSource)
-      } yield result
+        result       <- read(recNested(path)(desc) from configSource)
+      yield result
     }
+
+  private def recNested[A](path: K)(desc: => ConfigDescriptor[A]): ConfigDescriptor[A] =
+    path.split('.').foldRight(desc)((pathName, desc) => nested(pathName)(desc))
 
   def typesafeConfigSourceLayer(configFileName: String = "application.conf"): ULayer[ConfigSource] =
     ZLayer.succeed(TypesafeConfigSource.fromTypesafeConfig(ZIO.attempt(ConfigFactory.load(configFileName))))
