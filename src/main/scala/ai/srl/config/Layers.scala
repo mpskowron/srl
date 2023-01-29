@@ -44,7 +44,7 @@ object Layers:
       yield result
     }
 
-  private def recNested[A](path: K)(desc: => ConfigDescriptor[A]): ConfigDescriptor[A] =
+  def recNested[A](path: K)(desc: => ConfigDescriptor[A]): ConfigDescriptor[A] =
     path.split('.').foldRight(desc)((pathName, desc) => nested(pathName)(desc))
 
   def typesafeConfigSourceLayer(configFileName: String = "application.conf"): ULayer[ConfigSource] =
