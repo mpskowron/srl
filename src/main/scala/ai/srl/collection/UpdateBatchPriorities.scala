@@ -10,4 +10,4 @@ trait UpdateBatchPriorities[T]:
      * @param newPriorities new priorites for the items from the last batch - needs to maintain the same size and order as last batch
      *                      assert(newPriorities.size == t.getBatchSize())
      */
-    def updateLastBatch(newPriorities: Seq[Float]): Unit 
+    def updateLastBatch(newPriorities: Iterable[Float]): Unit 

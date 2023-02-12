@@ -4,10 +4,11 @@ import ai.srl.env.RlEnv
 import ai.srl.policy.PurePolicy
 import zio.{ZIO, Tag}
 
-trait Agent[-TrainContext, +TrainResult]:
-    def train(trainContext: TrainContext): ZIO[Any, Nothing, TrainResult]
+trait Agent[-TrainContext, +Error, +TrainResult]:
+  def train(trainContext: TrainContext): ZIO[Any, Error, TrainResult]
 
-object Agent {
-  def train[TrainContext: Tag, TrainResult: Tag](trainContext: TrainContext): ZIO[Agent[TrainContext, TrainResult], Nothing, TrainResult] =
+object Agent:
+  def train[TrainContext: Tag, TrainResult: Tag, Error: Tag](
+      trainContext: TrainContext
+  ): ZIO[Agent[TrainContext, Error, TrainResult], Error, TrainResult] =
     ZIO.serviceWithZIO(_.train(trainContext))
-}

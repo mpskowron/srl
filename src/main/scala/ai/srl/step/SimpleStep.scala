@@ -3,7 +3,8 @@ package ai.srl.step
 import alleycats.Empty
 import cats.kernel.Eq
 
-case class SimpleStep[Ac, Observation](preObservation: Observation, action: Ac, reward: Float, done: Boolean)
+case class SimpleStep[Ac, Observation](preObservation: Observation, action: Ac, reward: Float, done: Boolean):
+  def toEnvStep: EnvStep[Ac, Observation] = BaseEnvStep(action, preObservation, reward)
 
 object SimpleStep:
   given simpleStepEmptyInstance[Ac: Empty, Ob: Empty]: Empty[SimpleStep[Ac, Ob]] with

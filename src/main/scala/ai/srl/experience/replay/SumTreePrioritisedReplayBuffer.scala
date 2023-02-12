@@ -33,7 +33,7 @@ abstract class SumTreePrioritisedReplayBuffer[T] private (
   private var lastBatchIndexes: Seq[Int] = List.empty
 
   // TODO test it
-  override def updatePriorities(prioritisedIndexedElements: Seq[IndexedPriority]): UIO[Unit] =
+  override def updatePriorities(prioritisedIndexedElements: Iterable[IndexedPriority]): UIO[Unit] =
     ZIO.succeed(prioritisedIndexedElements.foreach(items.updateValue))
 
   override def getIndexedBatch: UIO[Chunk[IndexedElement[T]]] = ZIO.succeed(Chunk.fromIterable(getBatchInternal))
@@ -86,7 +86,7 @@ object SumTreePrioritisedReplayBuffer:
   // TODO remove it completely
   given [T: ClassTag]: IndexedPrioritisedReplayBuffer[SumTreePrioritisedReplayBuffer[T], T] with
     extension (prb: SumTreePrioritisedReplayBuffer[T])
-      def updateLastBatch(newPriorities: Seq[Float]): Unit =
+      def updateLastBatch(newPriorities: Iterable[Float]): Unit =
         require(prb.lastBatchIndexes.size == newPriorities.size)
         prb.lastBatchIndexes.iterator.zip(newPriorities).map(IndexedElement.apply).foreach(prb.items.updateValue)
 

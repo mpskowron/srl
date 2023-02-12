@@ -1,6 +1,7 @@
 package ai.srl.experience.collector
 
 import ai.srl.collection.SizedChunk
+import ai.srl.env.RLEnv.TsObs
 import ai.srl.env.{IndexedBanditEnv, IndexedObservations, RLEnv}
 import ai.srl.step.{EnvStep, TimeseriesEnvStep}
 import zio.{Chunk, Tag, ZLayer}
@@ -10,9 +11,9 @@ import zio.{Chunk, Tag, ZLayer}
 trait EnvStepCollector[Ac, Observation]:
   def collect(): Chunk[EnvStep[Ac, Observation]]
 
-class TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length <: Int](env: IndexedBanditEnv[Ac, EnvState, AgentState])
-    extends EnvStepCollector[Ac, (SizedChunk[Length, EnvState], AgentState)]:
-  override def collect(): Chunk[TimeseriesEnvStep[Ac, EnvState, AgentState, Length]] = ???
+class TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, TS <: Int](env: IndexedBanditEnv[Ac, EnvState, AgentState])
+    extends EnvStepCollector[Ac, TsObs[EnvState, AgentState, TS]]:
+  override def collect(): Chunk[TimeseriesEnvStep[Ac, EnvState, AgentState, TS]] = ???
 
 object TimeseriesBanditEnvCollector:
   def layer[Ac: Tag, EnvState: Tag, AgentState: Tag, Length <: Int: Tag]
