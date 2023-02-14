@@ -3,9 +3,12 @@ package ai.srl.env
 import ai.srl.collection.SizedChunk
 import ai.srl.env.RLEnv.RLEnvObs
 import ai.srl.policy.Policy
-import ai.srl.step.{EnvStep, SimpleStep}
+import ai.srl.step.{EnvStep, SimpleStep, TimeseriesEnvStep}
 import zio.ZIO.{fail, fromEither, when}
 import zio.{Chunk, Tag, ZIO, ZLayer}
+import zio.interop.catz.*
+import cats.syntax.all.toTraverseOps
+import ai.srl.error.EitherExtensions.orDie
 
 /** @tparam Action
   *   Action that Agent can perform. As an alternative implementation AgentState could be deleted and moved as a part of the Action
@@ -111,6 +114,14 @@ trait IndexedObservations[Observation]:
     */
   def observations[S <: Int: ValueOf](startIndex: Int): Either[IndexOutOfBoundsException, SizedChunk[S, Observation]]
 
+  def collectAllObservationsInTimeseries[TS <: Int: ValueOf](): Either[IndexOutOfBoundsException, Chunk[SizedChunk[TS, Observation]]] =
+    val tsSize   = valueOf[TS]
+    val maxIndex = size() - tsSize
+    for
+      _      <- Either.cond(maxIndex >= 0, (), IndexOutOfBoundsException(maxIndex))
+      result <- Chunk.range(0, maxIndex + 1).map(observations[TS]).sequence
+    yield result
+
   def size(): Int
 
 trait IndexedActionRewards[-Ac, -State]:
@@ -120,6 +131,35 @@ trait IndexedActionRewards[-Ac, -State]:
     */
   def actionReward(index: Int): Either[IndexOutOfBoundsException, ActionReward[State, Ac]]
 
+  def collectAllActionRewards(): Chunk[ActionReward[State, Ac]] = Chunk.range(0, size()).map(actionReward(_).orDie)
+
   def size(): Int
 
-trait IndexedBanditEnv[-Action, EnvState, -AgentState] extends IndexedObservations[EnvState] with IndexedActionRewards[Action, AgentState]
+trait IndexedBanditEnv[Action, EnvState, AgentState] extends IndexedObservations[EnvState] with IndexedActionRewards[Action, AgentState]:
+  def collectAllInTimeseries[TS <: Int: ValueOf](agentStatesWithActions: Set[(AgentState, Action)]): Either[
+    IndexOutOfBoundsException | IllegalStateException | IllegalArgumentException,
+    Chunk[TimeseriesEnvStep[Action, EnvState, AgentState, TS]]
+  ] =
+    for
+      _ <- Either.cond(valueOf[TS] >= 1, (), IllegalArgumentException(s"Minimum size of a timeseries is 1, but got ${valueOf[TS]}"))
+      observations <- collectAllObservationsInTimeseries[TS]()
+      actionRewards = collectAllActionRewards().dropRight(valueOf[TS] - 1)
+      _ <- Either.cond(
+        observations.length == actionRewards.length,
+        (),
+        IllegalStateException(s"Observations length (${observations.length}) does not match actionRewards length (${actionRewards.length})")
+      )
+    yield observations
+      .zip(actionRewards)
+      .flatMap((obs, actionReward) =>
+        agentStatesWithActionsToRewards(agentStatesWithActions, actionReward).map((state, action, reward) =>
+          TimeseriesEnvStep(action, RLEnvObs(obs, state), reward)
+        )
+      )
+      .ensuring(_.length == agentStatesWithActions.size * observations.length)
+
+  private def agentStatesWithActionsToRewards(
+      agentStatesWithActions: Set[(AgentState, Action)],
+      actionReward: ActionReward[AgentState, Action]
+  ): Chunk[(AgentState, Action, Float)] =
+    Chunk.fromIterable(agentStatesWithActions.map((state, action) => (state, action, actionReward(state, action))))

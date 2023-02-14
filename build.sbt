@@ -35,6 +35,7 @@ lazy val srl = project
       "dev.zio"        %% "zio-test-sbt"        % Versions.zio   % Test,
       "dev.zio"        %% "zio-test-junit"      % Versions.zio   % Test,
       "dev.zio"        %% "zio-test-magnolia"   % Versions.zio   % Test,
+      "dev.zio"            %% "zio-interop-cats"    % "23.0.0.0",
       "com.github.sbt"  % "junit-interface"     % "0.13.3"       % Test,
       "org.typelevel"  %% "shapeless3-deriving" % "3.1.0",
       "dev.zio" %% "zio-config" % Versions.zioConfig,

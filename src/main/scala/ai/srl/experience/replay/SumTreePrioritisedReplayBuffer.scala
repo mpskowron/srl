@@ -2,8 +2,7 @@ package ai.srl.experience.replay
 
 import ai.srl.collection.*
 import ai.srl.collection.SumTree.{IndexedValueItem, ValuedItem}
-import ai.srl.env.IndexedObservations
-import ai.srl.experience.collector.{TimeseriesBanditEnvCollector}
+import ai.srl.env.{IndexedBanditEnv, IndexedObservations}
 import ai.srl.experience.config.ReplayConfig
 import ai.srl.experience.replay.IndexedPrioritisedReplayBuffer
 import ai.srl.experience.replay.PrioritisedReplayBuffer.IndexedPriority
@@ -49,17 +48,20 @@ abstract class SumTreePrioritisedReplayBuffer[T] private (
 
 object SumTreePrioritisedReplayBuffer:
 
-  def layer[Ac: Tag, EnvState: Tag, AgentState: Tag, Length <: Int: Tag]: ZLayer[
-    TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length] & ReplayConfig,
-    Nothing,
-    SumTreePrioritisedReplayBuffer[TimeseriesEnvStep[Ac, EnvState, AgentState, Length]]
+  def layer[Ac: Tag, EnvState: Tag, AgentState: Tag, TS <: Int: Tag: ValueOf](agentStatesWithActions: Set[(AgentState, Ac)]): ZLayer[
+    IndexedBanditEnv[Ac, EnvState, AgentState] & ReplayConfig,
+    IndexOutOfBoundsException | IllegalStateException | IllegalArgumentException,
+    SumTreePrioritisedReplayBuffer[TimeseriesEnvStep[Ac, EnvState, AgentState, TS]]
   ] = ZLayer {
     for
       replayConfig <- ZIO.service[ReplayConfig]
-      trajectories <- ZIO.serviceWith[TimeseriesBanditEnvCollector[Ac, EnvState, AgentState, Length]](_.collect())
+      trajectories <- ZIO
+        .serviceWith[IndexedBanditEnv[Ac, EnvState, AgentState]](_.collectAllInTimeseries[TS](agentStatesWithActions))
+        .absolve
     yield SumTreePrioritisedReplayBuffer(
       batchSize = replayConfig.batchSize,
-      bufferSize = replayConfig.bufferSize,
+      // TODO replayConfig.bufferSize is not used in this case
+      bufferSize = trajectories.size,
       defaultPriority = replayConfig.prioritised.defaultPriority,
       items = trajectories
     )
