@@ -58,6 +58,7 @@ object SumTreePrioritisedReplayBuffer:
       trajectories <- ZIO
         .serviceWith[IndexedBanditEnv[Ac, EnvState, AgentState]](_.collectAllInTimeseries[TS](agentStatesWithActions))
         .absolve
+      _ <- ZIO.logInfo("Replay buffer size: " + trajectories.size)
     yield SumTreePrioritisedReplayBuffer(
       batchSize = replayConfig.batchSize,
       // TODO replayConfig.bufferSize is not used in this case

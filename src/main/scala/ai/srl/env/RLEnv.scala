@@ -122,6 +122,9 @@ trait IndexedObservations[Observation]:
       result <- Chunk.range(0, maxIndex + 1).map(observations[TS]).sequence
     yield result
 
+  def headOption: Option[Observation] = observations[1](0).toOption.map(_.chunk.head)
+  def lastOption: Option[Observation] = observations[1](size() - 1).toOption.map(_.chunk.head)
+
   def size(): Int
 
 trait IndexedActionRewards[-Ac, -State]:

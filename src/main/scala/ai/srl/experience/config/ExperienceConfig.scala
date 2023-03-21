@@ -4,6 +4,7 @@ import ai.srl.logging.Description
 import io.circe.Codec
 import zio.ZLayer
 import ai.srl.config.{ConfigError, Layers}
+import zio.config.*
 
 case class ExperienceConfig(replay: ReplayConfig, minBufferSize: Int) derives Codec.AsObject:
   export replay.*
@@ -15,7 +16,7 @@ case class ReplayConfig(batchSize: Int, bufferSize: Int, prioritised: PriorityCo
 
 object ReplayConfig {
 
-  val layer: ZLayer[Any, ConfigError, ReplayConfig] = Layers.configLayer("experience.replay")
+  val layer: ZLayer[ConfigSource, ReadError[String], ReplayConfig] = Layers.configLayer("experience.replay")
 }
 
 case class PriorityConfig(defaultPriority: Float)

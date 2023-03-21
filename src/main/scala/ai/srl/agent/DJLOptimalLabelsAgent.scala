@@ -44,7 +44,7 @@ object DJLOptimalLabelsAgent:
     (for
       metrics <- ZIO.fromOption(Option(trainer.getMetrics))
       latestMetric = metrics.latestMetric(EvaluatorTrainingListener.metricName(trainer.getLoss, EvaluatorTrainingListener.TRAIN_ALL))
-      _ <- ZIO.logInfo(latestMetric.getMetricName + " -> " + latestMetric.getValue)
+      _ <- ZIO.logDebug(latestMetric.getMetricName + " -> " + latestMetric.getValue)
     yield ()).catchAll { _ => ZIO.unit }
 
   def train(trainContext: Batch, trainer: Trainer): ZIO[Any, Nothing, BatchData] = for
