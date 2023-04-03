@@ -146,7 +146,7 @@ trait IndexedBanditEnv[Action, EnvState, AgentState] extends IndexedObservations
     for
       _ <- Either.cond(valueOf[TS] >= 1, (), IllegalArgumentException(s"Minimum size of a timeseries is 1, but got ${valueOf[TS]}"))
       observations <- collectAllObservationsInTimeseries[TS]()
-      actionRewards = collectAllActionRewards().dropRight(valueOf[TS] - 1)
+      actionRewards = collectAllActionRewards().drop(valueOf[TS] - 1)
       _ <- Either.cond(
         observations.length == actionRewards.length,
         (),
